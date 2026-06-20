@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kosmos Alpha</string>
+    <string name="widget_medium_description">City, temp, and top 2 verdicts</string>
+    <string name="widget_small_description">Temp, condition, and top verdict</string>
+    <string name="widget_large_description">Full insights and hourly strip</string>
+    <string name="widget_xl_description">XL insights, hourly strip, and mini timeline</string>
+    <string name="widget_todays_call_description">Just today\'s single most important call</string>
+    <string name="widget_next_rain_description">Next rain countdown or dry-hours ahead</string>
+    <string name="widget_mode_aware_description">Insights for your active mode</string>
+    <string name="widget_best_windows_description">Today\'s best windows — tap to set a reminder</string>
+</resources>

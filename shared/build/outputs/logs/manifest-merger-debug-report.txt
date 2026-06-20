@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/apple/Documents/Claude Apps/Android Apps/Kosmos/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7825464872790287044.xml:2:13-83
+INJECTED from /Users/apple/Documents/Claude Apps/Android Apps/Kosmos/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7825464872790287044.xml:2:13-83
+	package
+		INJECTED from /Users/apple/Documents/Claude Apps/Android Apps/Kosmos/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7825464872790287044.xml
+	xmlns:android
+		ADDED from /Users/apple/Documents/Claude Apps/Android Apps/Kosmos/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7825464872790287044.xml:2:23-81
+uses-sdk
+INJECTED from /Users/apple/Documents/Claude Apps/Android Apps/Kosmos/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7825464872790287044.xml reason: use-sdk injection requested
+INJECTED from /Users/apple/Documents/Claude Apps/Android Apps/Kosmos/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7825464872790287044.xml
+INJECTED from /Users/apple/Documents/Claude Apps/Android Apps/Kosmos/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7825464872790287044.xml
+	android:targetSdkVersion
+		INJECTED from /Users/apple/Documents/Claude Apps/Android Apps/Kosmos/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7825464872790287044.xml
+	android:minSdkVersion
+		INJECTED from /Users/apple/Documents/Claude Apps/Android Apps/Kosmos/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7825464872790287044.xml

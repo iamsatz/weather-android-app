@@ -1,0 +1,17 @@
+---
+description: Remind Satish (designer) about memory, cache, speed, offline — alpha context
+alwaysApply: true
+---
+
+# Alpha — designer questions (remind Satish when he starts a new session)
+
+Satish is the designer/owner. He cares how the app *behaves*, not Gradle internals. When he returns to Kosmos Alpha work, proactively offer a short recap of:
+
+1. **Memory (RAM)** — weather on screen lives in temporary phone memory while the app is open; killed/swiped away = that weather snapshot is gone.
+2. **Cache (disk)** — settings, saved city/coords, diary, farmer profile persist via DataStore; weather forecast is **not** saved to disk yet (alpha gap).
+3. **Speed** — first open is network-bound (~1–3s); toggling settings/modes is instant (re-runs verdict engine on cached-in-RAM data).
+4. **Offline** — **partial**: settings/diary work offline; fresh weather, chat, hyper-local, radar need internet. Cold start offline → error unless we add offline cache (beta candidate).
+
+Also remind: APK = `KosmosAlpha.apk`, launcher label = **Kosmos Alpha**, release path = alpha → design + feedback → beta → final.
+
+Point to `docs/13-Alpha-Designer-Guide.md` for the full plain-English explainer.

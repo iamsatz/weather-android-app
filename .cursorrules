@@ -1,0 +1,116 @@
+# Kosmos Android — Cursor Rules
+
+## What this project is
+
+Kosmos is a weather + wellness app that tells users what to do, not just what the weather is.
+Core promise: never show a number without telling the user what to do with it.
+"UV 6" means nothing. "Sun is brutal — 15 min max before noon, then SPF" means everything.
+
+## This folder is the Android app only
+
+- iOS + macOS are in a separate folder — do not reference them here
+- All shared logic (VerdictEngine, models, API client) lives in the KMP shared/ module
+- Full docs are in the docs/ folder of this project
+
+## Documentation — read before writing code
+
+- docs/10-Master-Brief.md — what Kosmos is, all features, all decisions
+- docs/11-Android.md — Android project structure, tech stack, code patterns
+- docs/12-Widgets.md — widget specs for all 4 sizes (build medium 2×1 first)
+- docs/03-Verdicts.md — the 17 verdict rules (the core brain)
+- docs/06-Design-System.md — colors, typography, voice/tone
+
+## Tech stack
+
+- Language: Kotlin
+- UI: Jetpack Compose
+- Widgets: Glance (Jetpack)
+- Shared logic: Kotlin Multiplatform (KMP) — verdict engine + models + API client
+- Storage: DataStore (preferences) + Room (cache if needed)
+- Background refresh: WorkManager (every 30 min)
+- Location: FusedLocationProviderClient
+- AI chat: Pollinations.ai — POST https://text.pollinations.ai/openai (free, no key)
+- Weather data: Open-Meteo — https://api.open-meteo.com/v1/forecast (free, no key)
+- Min SDK: 26 (Android 8.0) — covers 94% of devices
+- Target SDK: 35
+
+## Project structure
+
+```
+Kosmos/
+├── shared/              ← KMP module (verdict engine + models + API)
+│   └── src/commonMain/kotlin/com/kosmos/shared/
+│       ├── models/      ← WeatherSnapshot, Verdict, HourlyData
+│       ├── engine/      ← VerdictEngine (17 rules), PlainLanguage
+│       └── api/         ← OpenMeteoClient (ktor)
+└── androidApp/          ← Android-only UI
+    └── src/main/kotlin/com/kosmos/android/
+        ├── ui/          ← Compose screens (Home, Timeline, Chat, Settings)
+        ├── widget/      ← Glance widgets (Small, Medium, Large, XL)
+        ├── data/        ← Repositories (Weather, Location, Preferences)
+        ├── service/     ← WorkManager workers
+        └── notification/← Morning brief + rain alerts
+```
+
+## Build order (follow this sequence)
+
+1. KMP shared module — VerdictEngine + models + OpenMeteoClient
+2. Medium widget (2×1) — top priority; this IS the product for Android users
+3. HomeScreen (Compose) — character + verdicts + hourly strip
+4. WorkManager refresh — weather updates every 30 min
+5. Morning notification — 7 AM brief
+6. Settings screen
+7. Day timeline screen
+8. AI chat screen
+9. Large widget (4×2)
+10. Small widget (1×1)
+
+## Code rules
+
+1. Never show raw numbers to users — always convert to plain English
+   - UV 6 → "Sun is strong"
+   - AQI 72 → "●Good" (colored badge, no number)
+   - Feels-like 38°C → "Dangerous heat"
+
+2. Verdict IDs use dotted format: vitaminD.morning, bestWalk.evening
+   Base-ID matching: "vitaminD" toggle hides both .morning and .afternoon
+
+3. VerdictEngine.evaluate() returns List<Verdict> — never a single verdict
+   Priority tiers: SEVERE → ACTION → NORMAL
+   Show all SEVERE+ACTION verdicts. Show NORMAL only when nothing else fires.
+   Never cap the list.
+
+4. Widget content: NO scroll inside widgets (Android limitation)
+   Medium widget: max 2 verdicts. Large widget: max 4 verdicts.
+
+5. Reduce Motion: check system setting → skip animations, show static character
+
+6. Location flow:
+   - FusedLocationProvider (last known, instant) → try first
+   - If denied: ipwho.is → ipapi.co → hard default Hyderabad
+
+7. Comments: write zero comments unless the why is completely non-obvious
+
+## Voice rules (for verdict copy and AI chat)
+
+- Decision-first: action before explanation
+- Specific times: "around 4 PM" not "in the afternoon"
+- Indian-English idioms when natural ("don't fry yourself in this heat")
+- Max 2 emojis per message
+- Never start with "Hello!" or "Sure!" — get straight to the answer
+- Mirror user's language (Telugu, Hindi, English)
+
+## AQI badge colors
+
+| AQI | Color | Label |
+|---|---|---|
+| 0–49 | Green | ●Good |
+| 50–99 | Yellow | ●OK |
+| 100–149 | Orange | ●Rough |
+| 150+ | Red | ●Bad |
+Never show the number.
+
+## Owner
+
+Satish Kumar — designer. He reviews code, does not write it.
+Explain decisions clearly. Default to diagrams and examples.

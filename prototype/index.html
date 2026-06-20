@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Kosmos — Clickable Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #3D87D4;
+      --surface: #FFFFFF;
+      --surface-variant: #F0F0F5;
+      --text: #1A1A2E;
+      --text-muted: #6B6B80;
+      --text-detail: #4A4A5E;
+      --border: #E8E8F0;
+      --card-bg: rgba(255,255,255,0.85);
+      --bg-top: #A8C7E5;
+      --bg-bottom: #5E89B8;
+      --phone-w: 390px;
+      --phone-h: 844px;
+    }
+
+    .phone.dark {
+      --surface: #12131F;
+      --surface-variant: #1E2030;
+      --text: #EEEEF5;
+      --text-muted: #9898B0;
+      --text-detail: #B0B0C8;
+      --border: #2A2A40;
+      --card-bg: rgba(30,32,48,0.92);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0F1219;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      color: var(--text);
+    }
+
+    .proto-header { text-align: center; margin-bottom: 20px; color: #fff; }
+    .proto-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .proto-header p { font-size: 13px; color: rgba(255,255,255,0.55); }
+
+    .phone {
+      width: var(--phone-w);
+      height: var(--phone-h);
+      border-radius: 44px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 0 3px #2A2A3E, 0 24px 80px rgba(0,0,0,0.5);
+      background: var(--surface);
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 120px; height: 28px;
+      background: #000;
+      border-radius: 0 0 18px 18px;
+      z-index: 100;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .screen.active { display: flex; }
+
+    .home-bg {
+      flex: 1;
+      overflow-y: auto;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+      -webkit-overflow-scrolling: touch;
+    }
+    .home-content { padding: 36px 22px 100px; }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .top-bar .location { color: #fff; font-size: 13px; font-weight: 600; }
+    .icon-btn {
+      background: none; border: none; color: #fff;
+      cursor: pointer; padding: 8px; font-size: 20px;
+      line-height: 1; border-radius: 50%;
+      transition: background 0.15s;
+    }
+    .icon-btn:active { background: rgba(255,255,255,0.15); }
+    .phone.dark .icon-btn.dark-aware { color: var(--text); }
+
+    .hero { text-align: center; margin-bottom: 12px; }
+    .character {
+      width: 64px; height: 64px;
+      margin: 0 auto 4px; position: relative;
+    }
+    .character .body, .character .head {
+      position: absolute; border-radius: 50%;
+      animation: breathe 2s ease-in-out infinite alternate;
+    }
+    .character .body {
+      width: 32px; height: 32px;
+      background: rgba(255,255,255,0.9);
+      bottom: 10px; left: 50%; transform: translateX(-50%);
+    }
+    .character .head {
+      width: 20px; height: 20px;
+      background: rgba(255,255,255,0.95);
+      top: 10px; left: 50%; transform: translateX(-50%);
+    }
+    .character .eye {
+      position: absolute; width: 3px; height: 3px;
+      background: #2A2A3E; border-radius: 50%; top: 17px;
+    }
+    .character .eye.left { left: calc(50% - 6px); }
+    .character .eye.right { left: calc(50% + 3px); }
+    .character .face-line {
+      position: absolute; top: 21px; left: 50%;
+      transform: translateX(-50%);
+    }
+    .character .smile {
+      width: 10px; height: 5px;
+      border: 2px solid #2A2A3E; border-top: none;
+      border-radius: 0 0 10px 10px;
+    }
+    .character .umbrella {
+      width: 12px; height: 8px;
+      border: 2px solid #3380C7; border-bottom: none;
+      border-radius: 12px 12px 0 0;
+      margin-left: -6px; margin-top: -5px;
+    }
+
+    @keyframes breathe {
+      from { transform: translateX(-50%) scale(1); }
+      to { transform: translateX(-50%) scale(1.005); }
+    }
+
+    .temp {
+      font-size: 48px; font-weight: 700; color: #fff;
+      line-height: 1; letter-spacing: -2px;
+    }
+    .condition-label { font-size: 16px; font-weight: 500; color: #fff; margin-top: 4px; }
+    .hero-meta {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; margin-top: 8px;
+    }
+    .feels-like { font-size: 13px; color: rgba(255,255,255,0.9); }
+    .aqi-badge {
+      font-size: 11px; font-weight: 600; color: #fff;
+      padding: 3px 8px; border-radius: 20px;
+    }
+    .hi-lo { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 4px; }
+
+    .section-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.85); margin-bottom: 10px;
+    }
+
+    .verdict-card {
+      display: flex; background: var(--card-bg);
+      border-radius: 14px; overflow: hidden;
+      margin-bottom: 8px; cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .verdict-card:active { transform: scale(0.98); }
+    .verdict-accent { width: 3px; flex-shrink: 0; }
+    .verdict-emoji { width: 40px; text-align: center; padding-top: 12px; font-size: 18px; flex-shrink: 0; }
+    .verdict-body { flex: 1; padding: 10px 14px 10px 0; }
+    .verdict-title { font-size: 15px; font-weight: 600; color: var(--text); }
+    .verdict-detail {
+      font-size: 13px; color: var(--text-detail);
+      margin-top: 4px; max-height: 0; overflow: hidden; opacity: 0;
+      transition: max-height 0.25s ease, opacity 0.2s;
+    }
+    .verdict-card.expanded .verdict-detail { max-height: 80px; opacity: 1; }
+
+    .hourly-strip {
+      display: flex; gap: 12px; overflow-x: auto;
+      padding: 8px 0; scrollbar-width: none;
+    }
+    .hourly-strip::-webkit-scrollbar { display: none; }
+    .hour-item { min-width: 44px; text-align: center; color: #fff; }
+    .hour-item .hour-label { font-size: 10px; font-weight: 500; opacity: 0.8; }
+    .hour-item.now .hour-label { font-weight: 700; opacity: 1; }
+    .hour-item .hour-temp { font-size: 14px; font-weight: 600; padding: 4px 0; }
+    .hour-item .hour-emoji { font-size: 16px; }
+
+    .timeline-link {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--card-bg); border-radius: 14px;
+      padding: 16px; cursor: pointer; border: none;
+      width: 100%; text-align: left; font-family: inherit;
+      transition: transform 0.1s;
+    }
+    .timeline-link:active { transform: scale(0.98); }
+    .timeline-link-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .timeline-link-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .timeline-link-arrow { font-size: 20px; color: var(--primary); }
+
+    .fab {
+      position: absolute; bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      background: #fff; color: var(--primary);
+      border: none; border-radius: 50px;
+      padding: 14px 24px; font-size: 13px; font-weight: 600;
+      font-family: inherit; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      z-index: 10; transition: transform 0.1s, background 0.2s, color 0.2s;
+    }
+    .phone.dark .fab { background: var(--surface-variant); color: #7EB8F0; }
+    .fab:active { transform: translateX(-50%) scale(0.96); }
+
+    .sub-screen {
+      flex: 1; display: flex; flex-direction: column;
+      background: var(--surface); overflow: hidden;
+    }
+    .app-bar {
+      display: flex; align-items: center;
+      padding: 48px 8px 12px 4px;
+      background: var(--surface); flex-shrink: 0;
+    }
+    .app-bar .back-btn {
+      background: none; border: none; font-size: 22px;
+      cursor: pointer; padding: 8px 12px;
+      color: var(--text); border-radius: 50%;
+    }
+    .app-bar .back-btn:active { background: rgba(128,128,128,0.15); }
+    .app-bar-title { font-size: 18px; font-weight: 600; color: var(--text); }
+    .app-bar-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+    .sub-content {
+      flex: 1; overflow-y: auto;
+      padding: 0 20px 32px;
+    }
+    .sub-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+
+    .section-header {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+      color: var(--primary); padding: 12px 0 8px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+    }
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .settings-row-text .title { font-size: 14px; font-weight: 500; color: var(--text); }
+    .settings-row-text .sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .settings-link {
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+      cursor: pointer; width: 100%; text-align: left;
+      background: none; border-left: none; border-right: none; border-top: none;
+      font-family: inherit;
+    }
+    .settings-link:active { opacity: 0.7; }
+
+    .toggle {
+      width: 48px; height: 28px; background: #D0D0DC;
+      border-radius: 14px; position: relative;
+      cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+    }
+    .phone.dark .toggle { background: #3A3A50; }
+    .toggle.on { background: var(--primary); }
+    .toggle::after {
+      content: ''; position: absolute;
+      width: 22px; height: 22px; background: #fff;
+      border-radius: 50%; top: 3px; left: 3px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle.on::after { transform: translateX(20px); }
+
+    .timeline-row { display: flex; padding: 6px 0; align-items: flex-start; }
+    .timeline-hour {
+      width: 52px; font-size: 11px; font-weight: 500;
+      color: var(--text-muted); flex-shrink: 0; padding-top: 2px;
+    }
+    .timeline-line {
+      width: 2px; background: rgba(61,135,212,0.3);
+      flex-shrink: 0; margin-right: 12px; min-height: 20px;
+    }
+    .timeline-chips { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .timeline-chip {
+      display: flex; align-items: center;
+      padding: 8px 12px; border-radius: 10px; gap: 8px;
+    }
+    .timeline-chip .chip-title { font-size: 12px; font-weight: 600; color: var(--text); }
+    .timeline-chip .chip-time { font-size: 10px; color: var(--text-muted); }
+
+    .widget-tabs {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .widget-tab {
+      flex: 1; padding: 10px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--surface);
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      color: var(--text-muted); cursor: pointer;
+    }
+    .widget-tab.active {
+      background: var(--primary); color: #fff; border-color: var(--primary);
+    }
+
+    .widget-preview {
+      width: 100%; border-radius: 16px;
+      padding: 12px; display: flex; flex-direction: column;
+      color: #fff;
+    }
+    .widget-preview.medium { height: 112px; justify-content: space-between; }
+    .widget-preview.large {
+      height: 300px; background: #EEF2F8 !important;
+      color: var(--text); gap: 0;
+    }
+    .phone.dark .widget-preview.large { background: #1E2030 !important; }
+
+    .widget-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .widget-preview.large .widget-top { margin-bottom: 8px; }
+    .widget-city { font-size: 12px; font-weight: 600; }
+    .widget-preview.medium .widget-city { color: #fff; }
+    .widget-preview.large .widget-city { color: var(--text); font-size: 13px; }
+    .widget-temp-large { font-size: 28px; font-weight: 300; color: var(--text); line-height: 1; }
+    .widget-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .widget-cond { font-size: 11px; opacity: 0.9; }
+    .widget-preview.medium .widget-cond { color: rgba(255,255,255,0.9); }
+    .widget-preview.large .widget-cond { color: var(--text-muted); }
+    .widget-verdicts { display: flex; justify-content: space-between; gap: 8px; }
+    .widget-verdict { font-size: 12px; font-weight: 500; flex: 1; }
+    .widget-preview.medium .widget-verdict { color: #fff; }
+
+    .widget-divider { height: 1px; background: var(--border); margin: 10px 0; }
+    .widget-insights { flex: 1; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+    .widget-insight-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 500; color: var(--text);
+    }
+    .widget-hourly {
+      display: flex; justify-content: space-between;
+      padding-top: 8px; border-top: 1px solid var(--border);
+    }
+    .widget-hour-col { text-align: center; flex: 1; }
+    .widget-hour-col .wh-label { font-size: 9px; color: var(--text-muted); font-weight: 600; }
+    .widget-hour-col .wh-temp { font-size: 12px; font-weight: 600; color: var(--text); padding: 3px 0; }
+    .widget-hour-col .wh-emoji { font-size: 13px; }
+
+    .overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.4); z-index: 50;
+      display: none; opacity: 0; transition: opacity 0.3s;
+    }
+    .overlay.open { display: block; opacity: 1; }
+
+    .sheet {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-radius: 20px 20px 0 0; z-index: 60;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+      max-height: 85%; display: flex; flex-direction: column;
+    }
+    .sheet.open { transform: translateY(0); }
+    .sheet-handle {
+      width: 36px; height: 4px; background: var(--border);
+      border-radius: 2px; margin: 10px auto 0; flex-shrink: 0;
+    }
+    .sheet-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 12px 20px 0;
+    }
+    .sheet-title { font-size: 18px; font-weight: 600; color: var(--text); }
+    .sheet-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .sheet-body { flex: 1; overflow-y: auto; padding: 12px 20px 32px; }
+
+    .search-input {
+      width: 100%; padding: 12px 16px 12px 40px;
+      border: 1px solid var(--border); border-radius: 12px;
+      font-size: 15px; font-family: inherit; outline: none;
+      margin-bottom: 12px; background: var(--surface); color: var(--text);
+    }
+    .search-input:focus { border-color: var(--primary); }
+    .search-wrap { position: relative; }
+    .search-wrap .search-icon {
+      position: absolute; left: 14px; top: 50%;
+      transform: translateY(-50%); font-size: 16px; opacity: 0.4;
+    }
+    .city-item {
+      padding: 14px 0; font-size: 15px; cursor: pointer;
+      border-bottom: 1px solid var(--border); color: var(--text);
+    }
+    .city-item .city-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .city-item:active { opacity: 0.6; }
+
+    .chat-messages {
+      height: 280px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;
+    }
+    .chat-bubble {
+      max-width: 85%; padding: 10px 14px;
+      border-radius: 14px; font-size: 13px; line-height: 1.45;
+    }
+    .chat-bubble.assistant { background: var(--surface-variant); color: var(--text); align-self: flex-start; }
+    .chat-bubble.user { background: var(--primary); color: #fff; align-self: flex-end; max-width: 75%; }
+    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .suggestion-chip {
+      font-size: 11px; color: var(--primary);
+      background: rgba(61,135,212,0.1); border: none;
+      border-radius: 50px; padding: 6px 10px;
+      cursor: pointer; font-family: inherit;
+    }
+    .chat-input-row { display: flex; align-items: center; gap: 8px; }
+    .chat-input {
+      flex: 1; padding: 12px 16px;
+      border: 1px solid var(--border); border-radius: 12px;
+      font-size: 14px; font-family: inherit; outline: none;
+      background: var(--surface); color: var(--text);
+    }
+    .chat-input:focus { border-color: var(--primary); }
+    .send-btn {
+      background: none; border: none;
+      font-size: 22px; color: var(--primary); cursor: pointer; padding: 8px;
+    }
+
+    .proto-hints {
+      margin-top: 20px; max-width: var(--phone-w);
+      color: rgba(255,255,255,0.5); font-size: 12px;
+      line-height: 1.6; text-align: center;
+    }
+    .proto-hints strong { color: rgba(255,255,255,0.75); }
+
+    .accordion {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .acc-header {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; padding: 14px 16px;
+      background: none; border: none; cursor: pointer;
+      font-family: inherit; text-align: left;
+    }
+    .acc-header .acc-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .acc-header .acc-count { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-left: 6px; }
+    .acc-chevron {
+      font-size: 14px; color: var(--text-muted);
+      transition: transform 0.25s ease; flex-shrink: 0;
+    }
+    .accordion.open .acc-chevron { transform: rotate(180deg); }
+    .acc-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .accordion.open .acc-body { max-height: 2000px; }
+    .acc-inner { padding: 0 16px 14px; }
+
+    .feature-row {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .feature-row:last-child { border-bottom: none; }
+    .feature-row .feature-top {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .feature-row .feature-name { font-size: 13px; font-weight: 500; color: var(--text); }
+    .feature-row .feature-why { font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+    .phase-badge {
+      font-size: 9px; font-weight: 700; color: #fff;
+      padding: 3px 7px; border-radius: 20px;
+      white-space: nowrap; flex-shrink: 0;
+    }
+
+    .mode-badge {
+      display: inline-block;
+      font-size: 10px; font-weight: 600;
+      background: rgba(255,255,255,0.2);
+      color: #fff; padding: 3px 8px;
+      border-radius: 20px; margin-left: 8px;
+      vertical-align: middle;
+    }
+    .mode-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+    .mode-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: 12px;
+      border: 2px solid var(--border);
+      background: var(--surface); cursor: pointer;
+      text-align: left; font-family: inherit; width: 100%;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .mode-card.active { border-color: var(--primary); background: rgba(61,135,212,0.08); }
+    .mode-card .mode-emoji { font-size: 24px; flex-shrink: 0; }
+    .mode-card .mode-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .mode-card .mode-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .mode-card .mode-phase { font-size: 10px; color: var(--primary); margin-top: 3px; font-weight: 500; }
+
+    .phone.elder-ui .temp { font-size: 72px; }
+    .phone.elder-ui .verdict-title { font-size: 18px; }
+    .phone.elder-ui .verdict-detail { font-size: 15px; }
+    .phone.elder-ui .verdict-card { min-height: 56px; }
+    .phone.elder-ui .fab { font-size: 15px; padding: 16px 28px; }
+
+    .voice-fab {
+      position: absolute; bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      background: #fff; color: var(--primary);
+      border: none; border-radius: 50px;
+      padding: 16px 28px; font-size: 15px; font-weight: 600;
+      font-family: inherit; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 10;
+      display: none;
+    }
+    .phone.elder-ui .voice-fab { display: block; }
+    .phone.elder-ui .fab-chat { display: none; }
+
+    .phone.farmer-ui .fab-chat { display: none; }
+
+    .gps-dot {
+      display: inline-block;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #4DC85A; margin-right: 5px;
+      box-shadow: 0 0 0 2px rgba(77,200,90,0.3);
+      vertical-align: middle;
+    }
+
+    .nowcast-card {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: var(--card-bg);
+      border-left: 3px solid #3380C7;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-top: 4px;
+    }
+    .nowcast-card .nc-icon { font-size: 20px; line-height: 1.2; flex-shrink: 0; }
+    .nowcast-card .nc-text { flex: 1; }
+    .nowcast-card .nc-body { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; }
+    .nowcast-card .nc-meta { font-size: 10px; color: var(--text-muted); margin-top: 5px; font-weight: 600; letter-spacing: 0.03em; }
+    .nowcast-card .nc-live {
+      color: #3380C7; font-weight: 700;
+    }
+
+    .commute-advice {
+      margin-top: 8px; padding-top: 8px;
+      border-top: 1px dashed var(--border);
+    }
+    .commute-advice .ca-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;
+    }
+    .commute-advice .ca-line {
+      font-size: 12px; color: var(--text-detail); line-height: 1.4; margin-top: 3px;
+    }
+    .commute-advice .ca-line b { color: var(--text); font-weight: 600; }
+
+    .filter-label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: var(--text-muted); text-transform: uppercase; margin: 16px 0 6px; }
+    .dest-card { border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; background: var(--surface); }
+    .dest-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .dest-name { font-size: 15px; font-weight: 700; color: var(--text); }
+    .dest-temp { font-size: 14px; font-weight: 600; color: var(--text-muted); flex-shrink: 0; }
+    .dest-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .dest-why { font-size: 13px; color: var(--text-detail); margin-top: 6px; line-height: 1.4; }
+    .dest-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .dest-tag {
+      font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px;
+      background: rgba(61,135,212,0.1); color: var(--primary); border: 1px solid rgba(61,135,212,0.25);
+    }
+    .dest-tag.aud { background: rgba(77,200,90,0.1); color: #3FA67F; border-color: rgba(77,200,90,0.25); }
+    .travel-empty { font-size: 13px; color: var(--text-muted); padding: 18px 0; text-align: center; }
+
+    .commute-grid { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 4px; }
+    .commute-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 14px; border-radius: 12px;
+      border: 2px solid var(--border); background: var(--surface);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      color: var(--text-muted); cursor: pointer;
+    }
+    .commute-chip.on { border-color: var(--primary); background: rgba(61,135,212,0.08); color: var(--text); }
+    .commute-chip .cc-emoji { font-size: 16px; }
+
+    .plan-card {
+      border: 1px solid var(--border); border-radius: 14px;
+      padding: 14px; margin-bottom: 10px; background: var(--surface);
+    }
+    .plan-card.plus { border-color: var(--primary); }
+    .plan-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .plan-name { font-size: 15px; font-weight: 700; color: var(--text); }
+    .plan-price { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .plan-card.plus .plan-price { color: var(--primary); }
+    .plan-feat { font-size: 12px; color: var(--text-detail); padding: 3px 0; display: flex; gap: 7px; }
+    .plan-feat .pf-check { color: #4DC85A; font-weight: 700; }
+    .kplus-badge {
+      font-size: 9px; font-weight: 700; color: #fff;
+      background: var(--primary); padding: 2px 7px; border-radius: 20px;
+      margin-left: 6px; vertical-align: middle;
+    }
+
+    .lockscreen {
+      position: absolute; inset: 0; z-index: 200;
+      background: linear-gradient(160deg, #1a2740, #0a0f1c);
+      display: none; flex-direction: column;
+      align-items: center;
+      padding: 80px 20px 0;
+      cursor: pointer;
+    }
+    .lockscreen.show { display: flex; }
+    .lockscreen .ls-time { color: #fff; font-size: 64px; font-weight: 300; letter-spacing: -1px; line-height: 1; }
+    .lockscreen .ls-date { color: rgba(255,255,255,0.7); font-size: 15px; margin-top: 6px; font-weight: 500; }
+    .ls-notif {
+      margin-top: 40px; width: 100%;
+      background: rgba(255,255,255,0.16);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 18px; padding: 14px;
+      animation: lsDrop 0.45s cubic-bezier(0.32,0.72,0,1);
+    }
+    @keyframes lsDrop {
+      from { opacity: 0; transform: translateY(-16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .ls-notif-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .ls-app-icon {
+      width: 22px; height: 22px; border-radius: 6px;
+      background: linear-gradient(135deg, #5E89B8, #3D87D4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+    }
+    .ls-app-name { color: rgba(255,255,255,0.85); font-size: 12px; font-weight: 600; flex: 1; }
+    .ls-app-time { color: rgba(255,255,255,0.55); font-size: 11px; }
+    .ls-notif-title { color: #fff; font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+    .ls-notif-body { color: rgba(255,255,255,0.9); font-size: 13px; line-height: 1.45; }
+    .ls-hint { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: auto; margin-bottom: 28px; }
+
+    @media (max-width: 420px) {
+      body { padding: 0; }
+      .phone { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; }
+      .phone-notch { display: none; }
+      .proto-header, .proto-hints { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="proto-header">
+  <h1>Kosmos — Clickable Prototype</h1>
+  <p>6 modes · 8 cities · dark mode · widgets</p>
+</div>
+
+<div class="phone" id="phone">
+  <div class="phone-notch"></div>
+
+  <div class="screen active" id="screen-home">
+    <div class="home-bg" id="home-bg">
+      <div class="home-content">
+        <div class="top-bar">
+          <span class="location">
+            <span id="location-label">Hyderabad · Thu Jun 19</span>
+            <span class="mode-badge" id="mode-badge">🌤 Default</span>
+          </span>
+          <div>
+            <button class="icon-btn" onclick="openSheet('search')" aria-label="Search">🔍</button>
+            <button class="icon-btn" onclick="showScreen('settings')" aria-label="Settings">⚙️</button>
+          </div>
+        </div>
+        <div class="hero">
+          <div class="character" id="character">
+            <div class="head"></div>
+            <div class="body"></div>
+            <div class="eye left"></div>
+            <div class="eye right"></div>
+            <div class="face-line" id="character-face"><div class="smile"></div></div>
+          </div>
+          <div class="temp" id="hero-temp">34°</div>
+          <div class="condition-label" id="hero-condition">Partly cloudy</div>
+          <div class="hero-meta">
+            <span class="feels-like" id="hero-feels">Feels like 38°</span>
+            <span class="aqi-badge" id="hero-aqi">●Good</span>
+          </div>
+          <div class="hi-lo" id="hero-hilo">H 36° · L 26°</div>
+        </div>
+
+        <div class="section-label" id="insights-label">INSIGHTS</div>
+        <div id="verdicts-list"></div>
+        <div class="section-label" id="nowcast-label" style="margin-top:24px">UPDATE</div>
+        <div id="nowcast-card"></div>
+        <div class="section-label" id="travel-label" style="margin-top:24px">TRAVEL</div>
+        <button class="timeline-link" onclick="showScreen('travel')">
+          <div>
+            <div class="timeline-link-title">✈️ Where should I go?</div>
+            <div class="timeline-link-sub">Escape the heat — cooler hills or the sea</div>
+          </div>
+          <span class="timeline-link-arrow">→</span>
+        </button>
+        <div class="section-label" id="hourly-label" style="margin-top:24px">NEXT 12 HOURS</div>
+        <div class="hourly-strip" id="hourly-strip"></div>
+        <div class="section-label" id="today-label" style="margin-top:24px">TODAY</div>
+        <div id="timeline-section">
+          <button class="timeline-link" onclick="showScreen('timeline')">
+            <div>
+              <div class="timeline-link-title">See your day timeline</div>
+              <div class="timeline-link-sub" id="timeline-count">6 timed windows today</div>
+            </div>
+            <span class="timeline-link-arrow">→</span>
+          </button>
+        </div>
+        <button class="timeline-link" onclick="showScreen('widget')" style="margin-top:10px">
+          <div>
+            <div class="timeline-link-title">📲 Preview home-screen widgets</div>
+            <div class="timeline-link-sub">Medium 2×1 and Large 4×4</div>
+          </div>
+          <span class="timeline-link-arrow">→</span>
+        </button>
+      </div>
+    </div>
+    <button class="fab fab-chat" onclick="openSheet('chat')">Ask Kosmos</button>
+    <button class="voice-fab" onclick="alert('🔊 Voice preview: Rain at 4 PM. Carry umbrella. Walk at 6 PM.')">🔊 Read aloud<span class="kplus-badge">Kosmos+</span></button>
+  </div>
+
+  <div class="screen" id="screen-settings">
+    <div class="sub-screen">
+      <div class="app-bar">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="app-bar-title">Settings</div>
+      </div>
+      <div class="sub-content">
+        <div class="section-header">Your mode</div>
+        <p class="sub-desc">Same weather brain — different verdicts & UI per persona. v1 ships Default only; rest are preview.</p>
+        <div class="mode-grid" id="mode-grid"></div>
+
+        <div class="section-header">Commute</div>
+        <p class="sub-desc">How do you usually get around? Verdicts add commute-specific advice for what you pick.</p>
+        <div class="commute-grid" id="commute-grid"></div>
+
+        <div class="section-header">Appearance</div>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="title">Dark mode</div>
+            <div class="sub" id="dark-mode-label">Off — light cards & sheets</div>
+          </div>
+          <div class="toggle" id="toggle-dark" onclick="toggleDarkMode()"></div>
+        </div>
+
+        <div class="section-header">Units & format</div>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="title">Temperature</div>
+            <div class="sub" id="temp-unit-label">Celsius °C</div>
+          </div>
+          <div class="toggle on" id="toggle-celsius" onclick="toggleCelsius()"></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="title">Time format</div>
+            <div class="sub" id="time-format-label">12-hour</div>
+          </div>
+          <div class="toggle" id="toggle-24h" onclick="toggle24h()"></div>
+        </div>
+
+        <div class="section-header">Widget</div>
+        <button class="settings-link" onclick="showScreen('widget')">
+          <div class="settings-row-text">
+            <div class="title">Preview widgets</div>
+            <div class="sub">Medium (2×1) and Large (4×4)</div>
+          </div>
+        </button>
+
+        <div class="section-header">Alerts</div>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="title">Hyperlocal rain alert</div>
+            <div class="sub">A push when rain is ~1 hour from your area</div>
+          </div>
+          <button class="suggestion-chip" onclick="showLockscreen()">Preview</button>
+        </div>
+
+        <div class="section-header">Kosmos+</div>
+        <p class="sub-desc">Core stays free forever. Kosmos+ covers AI &amp; voice costs.</p>
+        <div class="plan-card">
+          <div class="plan-head">
+            <div class="plan-name">Free</div>
+            <div class="plan-price">₹0 forever</div>
+          </div>
+          <div class="plan-feat"><span class="pf-check">✓</span> All 17 verdicts + commute advice</div>
+          <div class="plan-feat"><span class="pf-check">✓</span> Hyperlocal rain alerts</div>
+          <div class="plan-feat"><span class="pf-check">✓</span> Ask Kosmos — 5 questions/day</div>
+        </div>
+        <div class="plan-card plus">
+          <div class="plan-head">
+            <div class="plan-name">Kosmos+</div>
+            <div class="plan-price">₹199/yr · ₹399 lifetime</div>
+          </div>
+          <div class="plan-feat"><span class="pf-check">✓</span> Unlimited Ask Kosmos</div>
+          <div class="plan-feat"><span class="pf-check">✓</span> Voice read-aloud (Telugu / English)</div>
+          <div class="plan-feat"><span class="pf-check">✓</span> All modes — Farmer, Family, Elder, Photographer</div>
+          <div class="plan-feat"><span class="pf-check">✓</span> Multiple saved locations</div>
+        </div>
+
+        <div class="section-header" id="verdict-toggles-section">Customize cards</div>
+        <div class="accordion" id="acc-insights">
+          <button class="acc-header" onclick="toggleAccordion('acc-insights')">
+            <span><span class="acc-title">Customize cards</span><span class="acc-count" id="customize-count">17 cards</span></span>
+            <span class="acc-chevron">⌄</span>
+          </button>
+          <div class="acc-body">
+            <div class="acc-inner">
+              <p class="sub-desc" id="verdict-toggles-desc" style="margin-bottom:12px">Toggle off any card you don't want to see in this mode.</p>
+              <div id="verdict-toggles"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-header" id="catalog-section">Feature catalog</div>
+        <p class="sub-desc" style="margin-bottom:12px">Everything Kosmos could build — 70+ ideas across 12 categories, tagged by phase. Tap a category to expand.</p>
+        <div id="catalog"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-timeline">
+    <div class="sub-screen">
+      <div class="app-bar">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div>
+          <div class="app-bar-title">Day Timeline</div>
+          <div class="app-bar-sub" id="timeline-sub">Hyderabad · Thu Jun 19</div>
+        </div>
+      </div>
+      <div class="sub-content">
+        <p class="sub-desc">Verdicts placed at their time windows — scroll to see your whole day.</p>
+        <div id="timeline-rows"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-widget">
+    <div class="sub-screen">
+      <div class="app-bar">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="app-bar-title">Widget Preview</div>
+      </div>
+      <div class="sub-content">
+        <div class="widget-tabs">
+          <button class="widget-tab active" id="tab-medium" onclick="setWidgetSize('medium')">Medium 2×1</button>
+          <button class="widget-tab" id="tab-large" onclick="setWidgetSize('large')">Large 4×4</button>
+        </div>
+        <p class="sub-desc" id="widget-desc">Medium widget (2×1) — the product for Android users</p>
+        <div id="widget-container"></div>
+        <p class="sub-desc" style="margin-top:24px">Tap widget on home screen → opens app. Verdict deep-links land in v1.1.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-travel">
+    <div class="sub-screen">
+      <div class="app-bar">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div>
+          <div class="app-bar-title">Where to go</div>
+          <div class="app-bar-sub">Best for this season · from your location</div>
+        </div>
+      </div>
+      <div class="sub-content">
+        <p class="sub-desc" id="travel-context">It's hot where you are — showing cooler escapes and sea getaways.</p>
+        <p class="sub-desc" style="margin-top:-8px;margin-bottom:12px;font-size:11px">Tap to select multiple filters in each row.</p>
+        <div class="filter-label">Vibe</div>
+        <div class="commute-grid" id="travel-vibe"></div>
+        <div class="filter-label">Good for</div>
+        <div class="commute-grid" id="travel-audience"></div>
+        <div class="filter-label">Distance</div>
+        <div class="commute-grid" id="travel-distance"></div>
+        <div class="filter-label">Region</div>
+        <div class="commute-grid" id="travel-region"></div>
+        <div id="travel-list" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" onclick="closeSheets()"></div>
+
+  <div class="sheet" id="sheet-search">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">Search city</div>
+      <button class="icon-btn dark-aware" onclick="closeSheets()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="city-search" placeholder="Type a city name…" oninput="filterCities()">
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px" id="current-city-label">Currently: Hyderabad</p>
+      <div id="city-list"></div>
+    </div>
+  </div>
+
+  <div class="sheet" id="sheet-chat">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div>
+        <div class="sheet-title">Ask Kosmos</div>
+        <div class="sheet-sub">5 free questions/day · unlimited with Kosmos+</div>
+      </div>
+      <button class="icon-btn dark-aware" onclick="closeSheets()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="suggestions" id="chat-suggestions"></div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chat-input" placeholder="Ask about your day…" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="send-btn" onclick="sendChat()">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="lockscreen" id="lockscreen" onclick="hideLockscreen()">
+    <div class="ls-time" id="ls-time">9:14</div>
+    <div class="ls-date" id="ls-date">Friday, June 19</div>
+    <div class="ls-notif">
+      <div class="ls-notif-head">
+        <div class="ls-app-icon">🌤</div>
+        <div class="ls-app-name">Kosmos</div>
+        <div class="ls-app-time">now</div>
+      </div>
+      <div class="ls-notif-title" id="ls-notif-title">Rain heading your way</div>
+      <div class="ls-notif-body" id="ls-notif-body"></div>
+    </div>
+    <div class="ls-hint">Tap anywhere to dismiss</div>
+  </div>
+</div>
+
+<p class="proto-hints">
+  <strong>Try:</strong> ⚙ → Your mode (Employee, Farmer, Family, Elder…) · 🔍 cities · ✈️ Where should I go?
+</p>
+
+<script>
+const TOGGLES = [
+  ['raincoat', 'Rain alerts'], ['umbrella', 'Umbrella reminders'],
+  ['heat', 'Heat warnings'], ['sunProtection', 'Sun protection'],
+  ['cold', 'Cold weather'], ['air', 'Air quality'],
+  ['vitaminD', 'Vitamin D windows'], ['bestWalk', 'Best walk times'],
+  ['avoidHours', 'Avoid outdoors'], ['canJog', 'Jog conditions'],
+  ['hydration', 'Hydration goals'], ['mosquito', 'Mosquito hour'],
+  ['openWindows', 'Open windows'], ['closeWindows', 'Keep windows shut'],
+  ['laundry', 'Laundry day'], ['goldenHour', 'Golden hour'],
+  ['coolerTomorrow', 'Cooler tomorrow'],
+];
+
+const MODES = [
+  { id: 'default', emoji: '🌤', name: 'Default', desc: 'Urban adult — 17 baseline verdicts', phase: 'v1.0' },
+  { id: 'employee', emoji: '💼', name: 'Employee', desc: 'Commute, lunch walk, screen breaks, gym window', phase: 'v2.0 preview' },
+  { id: 'farmer', emoji: '🌾', name: 'Farmer', desc: 'Spray, harvest, sowing, pest, monsoon, irrigation', phase: 'v3.0 preview' },
+  { id: 'family', emoji: '👨‍👩‍👧', name: 'Family', desc: 'Kids, school, pickup, stricter AQI/UV', phase: 'v2.0 preview' },
+  { id: 'elder', emoji: '👴', name: 'Elder', desc: 'Big text, voice-first, top 3 only', phase: 'v1.3 preview' },
+  { id: 'photographer', emoji: '📸', name: 'Photographer', desc: 'Golden hour, blue hour, fog, stars', phase: 'v2.0 preview' },
+];
+
+function modeVerdicts(modeId, city) {
+  const t = city.temp;
+  const sets = {
+    employee: [
+      { id: 'commuteOut', emoji: '🛵', title: 'Leave by 9:10 AM — dry commute', detail: 'Clear till noon. After that, evening rain makes the ride back messy.', accent: '#3380C7', start: 9, end: 10, label: '9:10 AM' },
+      { id: 'deskSun', emoji: '🪟', title: 'Sit near a window 9–11 AM', detail: 'Soft morning sun = your Vitamin D fix without leaving your desk.', accent: '#D98C33', start: 9, end: 11, label: '9–11 AM' },
+      { id: 'lunchWalk', emoji: '🚶', title: 'Lunch walk: 1–1:30 PM', detail: 'Last comfortable window before the 38° afternoon peak — 15 min is plenty.', accent: '#3FA67F', start: 13, end: 14, label: '1–1:30 PM' },
+      { id: 'screenBreak', emoji: '👀', title: 'Screen break + water at 3 PM', detail: 'Dry AC air. Step out for 5 min, refill your bottle, look far.', accent: '#3F8CD9', start: 15, end: 16, label: '3 PM' },
+      { id: 'commuteBack', emoji: '☔', title: 'Carry a raincoat for 6 PM ride', detail: 'Rain likely 4–6 PM — keep cover at your desk so the ride home stays dry.', accent: '#1A5CB3', start: 16, end: 18, label: '4–6 PM' },
+      { id: 'gymWindow', emoji: '🏋️', title: 'Gym / jog: after 6:30 PM', detail: 'Rain passes, air clears, 28° — best slot once you log off.', accent: '#4DB371', start: 18, end: 20, label: '6:30–8 PM' },
+      { id: 'laundryWeekend', emoji: '🧺', title: 'Save laundry for Saturday', detail: 'Weekday evenings stay damp — Saturday morning dries fastest.', accent: '#8C7366' },
+    ],
+    farmer: [
+      { id: 'spray', emoji: '🧴', title: 'Spray window: 6–9 AM tomorrow', detail: 'Wind under 10 km/h · no rain 24h · leaves dry — good for cotton spray.', accent: '#3FA67F', start: 6, end: 9, label: '6–9 AM' },
+      { id: 'sprayDrift', emoji: '💨', title: 'Skip spraying after 11 AM', detail: 'Gusts hit 18 km/h midday — chemical drifts onto the next field.', accent: '#C74D33', start: 11, end: 16, label: '11 AM–4 PM' },
+      { id: 'irrigation', emoji: '💧', title: 'Irrigate at dusk, not noon', detail: '38° midday evaporates half your water — run pumps after 6 PM.', accent: '#3F8CD9', start: 18, end: 20, label: 'After 6 PM' },
+      { id: 'harvest', emoji: '🌾', title: 'Harvest readiness rising', detail: 'Soil moisture dropping · 3 dry days ahead — plan cotton pick this week.', accent: '#D98C33', start: 10, end: 17, label: 'This week' },
+      { id: 'pest', emoji: '🐛', title: 'Pest pressure — watch bollworm', detail: 'Humidity 78% + 32° for 3 days — scout fields today.', accent: '#C74D33', start: 14, end: 18, label: '2–6 PM' },
+      { id: 'monsoon', emoji: '🌧', title: 'Monsoon onset ~12 days', detail: 'IMD window opens Jul 1 — hold sowing till soil hits 18–25°.', accent: '#1A5CB3' },
+      { id: 'sowing', emoji: '🌱', title: 'Sowing window opening', detail: 'Soil temp 24° · moisture OK — rice transplant in 10–14 days.', accent: '#4DB371', start: 7, end: 14, label: 'Next 2 weeks' },
+      { id: 'stubble', emoji: '🔥', title: 'Stubble burn risk — low wind', detail: 'Dry + calm — avoid burning toward village. Wind shifts at 4 PM.', accent: '#8C7366', start: 11, end: 16, label: '11 AM–4 PM' },
+    ],
+    family: [
+      { id: 'schoolUniform', emoji: '🎒', title: 'School: light layers at 7 AM', detail: '22° at drop-off · no rain till afternoon — cotton tee + light jacket.', accent: '#3F8CD9', start: 7, end: 8, label: '7 AM' },
+      { id: 'sunscreen', emoji: '🧴', title: 'Sunscreen before school', detail: 'UV climbs fast by 10 AM — SPF 30 on the kids before they leave.', accent: '#EB9933', start: 7, end: 8, label: '7 AM' },
+      { id: 'peClass', emoji: '🏫', title: 'PE class OK at 10 AM', detail: 'AQI good · UV moderate — sunscreen for Arjun, cap for Meera.', accent: '#4DB371', start: 10, end: 11, label: '10 AM' },
+      { id: 'kidsHydration', emoji: '🧃', title: 'Pack an extra water bottle', detail: '38° feels-like by noon — kids dehydrate faster; refill at lunch.', accent: '#3F8CD9' },
+      { id: 'pickup', emoji: '🚗', title: 'Pickup: carry umbrella 3:30 PM', detail: 'Rain starts ~4 PM — foldable in the car before school run.', accent: '#3380C7', start: 15, end: 16, label: '3:30 PM' },
+      { id: 'playtime', emoji: '🛝', title: 'Evening play: 6–7 PM', detail: 'Rain passes · 29° · AQI good — park window after homework.', accent: '#3FA67F', start: 18, end: 19, label: '6–7 PM' },
+      { id: 'kidsAir', emoji: '👶', title: 'Kids outdoors OK till 4 PM', detail: 'Family threshold: AQI under 80 · stays good till rain.', accent: '#4DC85A', start: 9, end: 16, label: 'Till 4 PM' },
+      { id: 'tiffin', emoji: '🍱', title: 'Tiffin: skip hot soup', detail: '38° feels-like by noon — pack fruit + water, not heavy lunch.', accent: '#EB9933' },
+    ],
+    elder: [
+      { id: 'raincoat', emoji: '☔', title: 'Rain at 4 PM — keep umbrella by the door', detail: 'Good chance of rain 4–6 PM. Carry it if you step out.', accent: '#1A5CB3', start: 16, end: 18, label: '4–6 PM' },
+      { id: 'heat', emoji: '🔥', title: 'Very hot till 4 PM — rest indoors', detail: 'Feels like 38°. Drink water often and stay in the shade.', accent: '#C74D33', start: 11, end: 16, label: '11 AM–4 PM' },
+      { id: 'bestWalk', emoji: '🚶', title: 'Best walks: 6:30–8 AM and 6:30–7:30 PM', detail: 'Cool and gentle — short, flat, dry paths at both ends of the day.', accent: '#3FA67F', start: 18, end: 20, label: '6:30–7:30 PM' },
+    ],
+    photographer: [
+      { id: 'goldenHour.sunrise', emoji: '🌄', title: 'Sunrise golden hour: 5:48–6:20 AM', detail: 'Soft warm light from the east — best for calm, misty frames.', accent: '#E8A35C', start: 5, end: 7, label: '5:48–6:20 AM' },
+      { id: 'goldenHour.sunset', emoji: '🌅', title: 'Sunset golden hour: 6:24–6:42 PM', detail: 'Warm side light for portraits — 18 min before sunset to dusk.', accent: '#F28C4D', start: 18, end: 19, label: '6:24–6:42 PM' },
+      { id: 'blueHour', emoji: '🌆', title: 'Blue hour: 7:05–7:35 PM', detail: 'Twilight glow — best for cityscapes after sunset.', accent: '#7399BF', start: 19, end: 20, label: '7:05–7:35 PM' },
+      { id: 'cumulus', emoji: '☁️', title: 'Cumulus building 3–5 PM', detail: 'Partly cloudy + heat — dramatic sky textures for landscapes.', accent: '#80B3D9', start: 15, end: 17, label: '3–5 PM' },
+      { id: 'fog', emoji: '🌫', title: 'Fog likely 5:30–7 AM', detail: 'Cool night + humid air — low river fog for moody shots.', accent: '#9AA7B5', start: 5, end: 7, label: '5:30–7 AM' },
+      { id: 'rainbow', emoji: '🌈', title: 'Rainbow watch: 5:30 PM', detail: 'Sun angle + post-rain showers — look east after rain stops.', accent: '#BFB259', start: 17, end: 18, label: '5:30 PM' },
+      { id: 'stars', emoji: '🌌', title: 'Stargazing: maybe after 9 PM', detail: 'Clouds clear after 9 PM · moon 12% — try once the rain passes.', accent: '#2B3158', start: 21, end: 23, label: '9 PM+' },
+    ],
+  };
+  if (modeId === 'default') return city.verdicts;
+  return sets[modeId] || city.verdicts;
+}
+
+const TRAVEL_DESTINATIONS = [
+  { name: 'Pocharam Lake', region: 'Telangana', distance: 40, temp: 30, season: 'Best Nov–Feb', vibe: 'warm', tags: ['family', 'kids', 'friends'], why: 'Cool mornings and birdwatching — easy day trip right now.' },
+  { name: 'Ananthagiri Hills', region: 'Telangana', distance: 80, temp: 27, season: 'Year-round', vibe: 'cool', tags: ['friends', 'couples', 'family'], why: 'Misty forest trails and coffee estates; pleasant this season.' },
+  { name: 'Nagarjuna Sagar', region: 'Telangana', distance: 150, temp: 31, season: 'Best Oct–Mar', vibe: 'warm', tags: ['family', 'friends'], why: 'Huge dam and lake; warm afternoons, breezy evenings.' },
+  { name: 'Vijayawada', region: 'Andhra Pradesh', distance: 270, temp: 33, season: 'Best Nov–Feb', vibe: 'warm', tags: ['family', 'friends'], why: 'Hot midday, but lovely Krishna riverfront after sunset.' },
+  { name: 'Hampi', region: 'Karnataka', distance: 360, temp: 33, season: 'Best Oct–Feb', vibe: 'warm', tags: ['friends', 'couples'], why: 'Ruins are magic at dawn and dusk; skip the hot afternoons.' },
+  { name: 'Coorg', region: 'Karnataka', distance: 520, temp: 22, season: 'Best Oct–Mar', vibe: 'cool', tags: ['couples', 'friends', 'family'], why: 'Green, misty plantations — a proper monsoon-edge escape.' },
+  { name: 'Araku Valley', region: 'Andhra Pradesh', distance: 600, temp: 24, season: 'Year-round', vibe: 'cool', tags: ['family', 'couples', 'friends'], why: 'Coffee hills and the coolest air of any nearby getaway.' },
+  { name: 'Vizag · RK Beach', region: 'Andhra Pradesh', distance: 620, temp: 29, season: 'Best Oct–Mar', vibe: 'beach', tags: ['family', 'kids', 'friends'], why: 'Bay of Bengal breeze — beach walks and seafood after sunset.' },
+  { name: 'Gokarna', region: 'Karnataka', distance: 650, temp: 28, season: 'Best Oct–Mar', vibe: 'beach', tags: ['friends', 'couples'], why: 'Quiet beaches and cliff trails — less crowded than Goa.' },
+  { name: 'Ooty', region: 'Tamil Nadu', distance: 700, temp: 18, season: 'Year-round', vibe: 'cool', tags: ['family', 'kids', 'couples'], why: 'Hill station; chilly nights — pack a jacket.' },
+  { name: 'Mahabalipuram', region: 'Tamil Nadu', distance: 700, temp: 30, season: 'Best Oct–Mar', vibe: 'beach', tags: ['family', 'kids'], why: 'Shore temples plus a sandy beach — easy weekend with kids.' },
+  { name: 'Wayanad', region: 'Kerala', distance: 730, temp: 23, season: 'Best Oct–May', vibe: 'cool', tags: ['family', 'couples'], why: 'Forests and waterfalls; cool and green this season.' },
+  { name: 'Munnar', region: 'Kerala', distance: 780, temp: 19, season: 'Best Sep–Mar', vibe: 'cool', tags: ['couples', 'family'], why: 'Tea hills, crisp air — one of the prettiest long drives.' },
+  { name: 'Goa', region: 'Goa', distance: 900, temp: 28, season: 'Best Nov–Feb', vibe: 'beach', tags: ['friends', 'couples', 'family'], why: 'Arabian Sea, shacks, and breezy evenings — classic escape from the heat.' },
+  { name: 'Mussoorie', region: 'Uttarakhand', distance: 1600, temp: 20, season: 'Best Mar–Jun', vibe: 'cool', tags: ['family', 'couples'], why: 'Himalayan foothills; cool and scenic, but a long haul.' },
+];
+
+const TRAVEL_DISTANCES = [
+  { label: '<10 km', max: 10 },
+  { label: '<100 km', max: 100 },
+  { label: '<500 km', max: 500 },
+  { label: 'Any', max: Infinity },
+];
+
+const TRAVEL_VIBES = [
+  { id: 'cool', label: 'Cooler / Hills' },
+  { id: 'beach', label: 'Beach / Sea' },
+  { id: 'any', label: 'Anything' },
+];
+
+const TRAVEL_AUDIENCES = [
+  { id: 'all', label: 'Everyone' },
+  { id: 'family', label: 'Family' },
+  { id: 'kids', label: 'Kids' },
+  { id: 'friends', label: 'Friends' },
+  { id: 'couples', label: 'Couples' },
+];
+
+const TRAVEL_REGIONS = ['All India', 'Telangana', 'Andhra Pradesh', 'Tamil Nadu', 'Kerala', 'Karnataka', 'Goa', 'Uttarakhand'];
+
+const VIBE_LABEL = { cool: 'Cooler / Hills', beach: 'Beach / Sea', warm: 'Warm' };
+const AUD_LABEL = { family: 'Family', kids: 'Kids', friends: 'Friends', couples: 'Couples' };
+
+const FEATURE_CATALOG = [
+  { cat: '🌤 Core Weather', items: [
+    { name: 'Live weather from Open-Meteo', phase: 'v1.0', why: 'Free ensemble of 3 models; instantly reliable' },
+    { name: '17 verdict rules (the moat)', phase: 'v1.0', why: 'The entire product; tells users what to do' },
+    { name: 'Hourly forecast (next 12h)', phase: 'v1.0', why: 'Every decision needs "what about later"' },
+    { name: 'Day timeline (5 AM–11 PM)', phase: 'v1.0', why: 'Verdicts placed in time slots; the main view' },
+    { name: 'Current conditions + feels-like', phase: 'v1.0', why: 'Basic, non-negotiable' },
+    { name: 'AQI (air quality)', phase: 'v1.0', why: 'Major factor in outdoor decisions' },
+    { name: 'Neighborhood-level location', phase: 'v1.0', why: '"Dhulapally, Hyderabad" not just "Hyderabad"' },
+    { name: 'Tomorrow.io secondary source', phase: 'Phase 2-3', why: 'Adds confidence ("3 models agree"); needs API key' },
+    { name: '10-day forecast', phase: 'Phase 2-3', why: 'Free users rarely need it; Pro tier feature' },
+    { name: 'Pollen index', phase: 'Phase 2-3', why: 'Not in Open-Meteo; requires Tomorrow.io + feedback' },
+    { name: 'UV forecast (hourly)', phase: 'Phase 2-3', why: 'Open-Meteo has UV; add hourly breakdown' },
+    { name: 'Satellite imagery', phase: 'Phase 4+', why: 'Nice-to-have visual; separate API; India-specific' },
+    { name: 'Severe weather alerts (IMD)', phase: 'Phase 4+', why: 'IMD has no public API; requires partnership' },
+    { name: 'Storm tracking (real-time radar)', phase: 'Phase 4+', why: 'Complex; RainViewer API; niche use case' },
+    { name: 'Wildfire smoke tracking', phase: 'Phase 4+', why: 'US/Australia-specific; not India-first priority' },
+    { name: 'Tsunami / cyclone warnings', phase: 'Phase 4+', why: 'Extremely niche; regulatory complexity' },
+    { name: 'Flight delay prediction', phase: 'Never', why: 'Flightradar24 owns this; out of scope' },
+    { name: 'Astrology / horoscope', phase: 'Never', why: 'Not weather; brand confusion' },
+    { name: 'Stock market tie-in', phase: 'Never', why: 'Unrelated; feels desperate' },
+  ]},
+  { cat: '🚶 Activity & Health', items: [
+    { name: 'Best walk time (morning + evening)', phase: 'v1.0', why: "Core feature; Sneha's persona" },
+    { name: 'Jog-ready verdict', phase: 'v1.0', why: '"Can I jog today?" is core' },
+    { name: 'Vitamin D window (AM + PM)', phase: 'v1.0', why: 'Drives outdoor behavior' },
+    { name: 'Heat caution + avoid-hours', phase: 'v1.0', why: 'Safety; prevents injury' },
+    { name: 'Hydration reminder', phase: 'v1.0', why: 'Simple, high-value nudge' },
+    { name: 'Cold-day warning', phase: 'v1.0', why: 'Safety threshold' },
+    { name: 'Apple HealthKit integration', phase: 'Phase 2-3', why: 'Track walk sessions; iOS only' },
+    { name: 'Google Fit integration', phase: 'Phase 2-3', why: 'Android HealthKit equivalent' },
+    { name: 'Migraine forecast (pressure)', phase: 'Phase 2-3', why: 'Real signal; needs data; Pro' },
+    { name: 'Asthma attack forecast', phase: 'Phase 2-3', why: 'Pollen + AQI + humidity; valuable for parents; Pro' },
+    { name: 'Sleep environment recommendations', phase: 'Phase 2-3', why: 'Temp + humidity for sleep quality' },
+    { name: 'Cycle tracking (period + mood)', phase: 'Phase 2-3', why: 'Niche; on user request' },
+    { name: 'Injury recovery tracking', phase: 'Phase 4+', why: 'Very niche; liability risk' },
+    { name: 'Allergy symptom logging', phase: 'Phase 4+', why: 'Crowdsourced; too complex for v1' },
+    { name: 'Heart rate zone recommendations', phase: 'Phase 4+', why: 'Requires wearable integration' },
+    { name: 'Generic fitness app (Strava overlap)', phase: 'Never', why: 'Not our lane; duplicates existing tools' },
+    { name: 'Weight tracking by weather', phase: 'Never', why: 'Creepy; not scientific; brand risk' },
+    { name: 'Meditation / breathing timer', phase: 'Never', why: 'Weather-agnostic; not our product' },
+  ]},
+  { cat: '🔔 Notifications & Alerts', items: [
+    { name: 'Morning brief (7 AM, customizable)', phase: 'v1.0', why: 'Daily habit driver; high engagement' },
+    { name: 'Rain alert (60 min before)', phase: 'v1.0', why: 'Most common alert; high utility' },
+    { name: 'Severe weather push', phase: 'v1.0', why: 'Heat > 40°C, AQI > 300; safety-critical' },
+    { name: 'Quiet hours (10 PM–6 AM)', phase: 'Phase 2-3', why: 'Good UX; defer to Phase 2' },
+    { name: 'Verdict-specific opt-in', phase: 'Phase 2-3', why: 'Notify only for rain, not walk' },
+    { name: 'Vitamin D nudge notification', phase: 'Phase 2-3', why: 'Engagement; low priority' },
+    { name: 'Outfit recommendation notification', phase: 'Phase 2-3', why: 'AI-generated; iOS' },
+    { name: '3-daily-brief option', phase: 'Phase 2-3', why: 'Morning + midday + evening segmentation' },
+    { name: 'Parent city weather', phase: 'Phase 2-3', why: "Mom/dad's location; customizable favorites" },
+    { name: 'Proactive chat ("Hey, looks like...")', phase: 'Phase 4+', why: 'UX complexity; can feel creepy' },
+    { name: 'SMS alerts (no-app fallback)', phase: 'Phase 4+', why: 'Requires backend; regulatory' },
+    { name: 'Ads in notifications', phase: 'Never', why: 'Brand destruction; users abandon app' },
+    { name: 'Affiliate notifications', phase: 'Never', why: 'Spam; destroys trust' },
+  ]},
+  { cat: '🎭 Modes & Personalization', items: [
+    { name: 'Default mode (17 verdicts)', phase: 'v1.0', why: 'Standard; urban adult' },
+    { name: 'Per-verdict enable/disable', phase: 'v1.0', why: 'Core settings control' },
+    { name: 'Dark mode', phase: 'v1.0', why: 'Expected baseline' },
+    { name: 'Reduce Motion toggle', phase: 'v1.0', why: 'Required for a11y' },
+    { name: 'Family mode', phase: 'Phase 2-3', why: 'Child profiles, stricter thresholds, school brief' },
+    { name: 'Elder mode', phase: 'Phase 2-3', why: 'Big text, voice-first, custom alerts' },
+    { name: 'Photographer mode', phase: 'Phase 2-3', why: 'Golden hour, fog, stargazing, lightning chase' },
+    { name: 'Language picker (Te/Hi/Ta)', phase: 'Phase 2-3', why: 'Deep localization' },
+    { name: 'Travel mode (overlay)', phase: 'Phase 2-3', why: 'Destination + home split, pack list' },
+    { name: 'Farmer mode (MAJOR)', phase: 'Phase 4+', why: 'Crop verdicts, spray timing, monsoon onset' },
+    { name: 'Custom alert thresholds', phase: 'Phase 4+', why: 'Pro personalization' },
+    { name: 'Accent color picker', phase: 'Phase 4+', why: 'Nice-to-have' },
+  ]},
+  { cat: '🤝 Social & Sharing', items: [
+    { name: 'Share verdict as screenshot', phase: 'v1.0', why: '"Look what I got" social signal' },
+    { name: 'Copy verdict text to clipboard', phase: 'Phase 2-3', why: 'Simple social share path' },
+    { name: 'WhatsApp share button', phase: 'Phase 2-3', why: 'India-native' },
+    { name: 'Share day with family', phase: 'Phase 2-3', why: 'iCloud/Drive; family plan feature' },
+    { name: 'Public link to today\'s verdict', phase: 'Phase 2-3', why: 'kosmos.app/hyderabad/jun19; viral potential' },
+    { name: 'WhatsApp bot', phase: 'Phase 4+', why: 'Backend + NLU; India deep-dive' },
+    { name: 'Telegram bot', phase: 'Phase 4+', why: 'Similar to WhatsApp' },
+    { name: 'Email daily digest', phase: 'Phase 4+', why: 'Requires email service; low engagement' },
+    { name: 'LinkedIn posting', phase: 'Never', why: 'Cringe; brand damage' },
+    { name: 'Influencer integrations', phase: 'Never', why: 'Requires creator fund; distracts' },
+  ]},
+  { cat: '🔗 Integrations & APIs', items: [
+    { name: 'Open-Meteo (primary weather)', phase: 'v1.0', why: 'Free, no key, ensemble' },
+    { name: 'Pollinations.ai (AI chat)', phase: 'v1.0', why: 'Free, no key, OpenAI-compatible' },
+    { name: 'Tomorrow.io (confidence/pollen)', phase: 'Phase 2-3', why: 'Free tier, needs key' },
+    { name: 'Groq AI fallback', phase: 'Phase 2-3', why: 'Faster responses; redundancy' },
+    { name: 'Google Calendar integration', phase: 'Phase 2-3', why: '"Rain on your 3 PM meeting day"' },
+    { name: 'Apple HealthKit read', phase: 'Phase 2-3', why: 'Walk sessions, HR zones; iOS' },
+    { name: 'Google Fit read', phase: 'Phase 2-3', why: 'Android equivalent' },
+    { name: 'Spotify integration', phase: 'Phase 2-3', why: 'Playlist by mood; low priority' },
+    { name: 'Kosmos API (embed verdicts)', phase: 'Phase 4+', why: 'B2B; requires backend' },
+    { name: 'Smart home triggers (IFTTT)', phase: 'Phase 4+', why: '"Turn on AC when heat > 40°C"' },
+    { name: 'Meta/Facebook login', phase: 'Never', why: 'Privacy-first brand; email only' },
+    { name: 'Google Analytics (aggressive)', phase: 'Never', why: 'Use privacy-first alternative or none' },
+  ]},
+  { cat: '📊 Data & Analytics', items: [
+    { name: 'Crash reporting (anonymized)', phase: 'v1.0', why: 'Quality control; no user tracking' },
+    { name: 'No user analytics (privacy badge)', phase: 'v1.0', why: '"Data Not Collected" — a feature' },
+    { name: 'Privacy nutrition label', phase: 'Phase 2-3', why: 'Fill out before launch' },
+    { name: 'Optional usage analytics', phase: 'Phase 2-3', why: 'Plausible, privacy-first; opt-in' },
+    { name: 'Historical weather (last 30 days)', phase: 'Phase 4+', why: 'Archive; low engagement' },
+    { name: 'Weather pattern statistics', phase: 'Phase 4+', why: '"Rainy Mondays this month: 12"' },
+    { name: 'Personal weather diary', phase: 'Phase 4+', why: 'Crowdsourced; needs moderation' },
+    { name: 'Sell anonymized data to insurers', phase: 'Never', why: 'Ethical violation; brand destruction' },
+    { name: 'Ad-supported analytics model', phase: 'Never', why: 'Contradicts free + private promise' },
+  ]},
+  { cat: '🌍 Localization & Culture', items: [
+    { name: 'English interface', phase: 'v1.0', why: 'Global default' },
+    { name: 'Hindi + Telugu text', phase: 'v1.0', why: '500M+ speakers; must-have for India' },
+    { name: 'Tamil localization', phase: 'Phase 2-3', why: 'South India' },
+    { name: 'Kannada + Marathi', phase: 'Phase 2-3', why: 'Tier 2 languages' },
+    { name: 'Bengali', phase: 'Phase 2-3', why: 'East India' },
+    { name: 'AI chat in local languages', phase: 'Phase 2-3', why: 'Pollinations works; verified' },
+    { name: 'Locale-specific idioms', phase: 'Phase 2-3', why: '"don\'t fry yourself" in Telugu' },
+    { name: 'Festival weather context', phase: 'Phase 2-3', why: 'Diwali, Holi, Sankranti; calendar-based' },
+    { name: 'Gujarati + Punjabi', phase: 'Phase 4+', why: 'Tier 3; on demand' },
+    { name: 'Roman script fallback', phase: 'Phase 4+', why: 'Hindi in Latin; a11y edge case' },
+    { name: 'Constructed languages (Esperanto)', phase: 'Never', why: 'No user base' },
+    { name: 'Morse code weather', phase: 'Never', why: 'Novelty, not useful' },
+  ]},
+  { cat: '💰 Monetization & Pro', items: [
+    { name: 'All 17 verdicts (free)', phase: 'v1.0', why: 'Core product; drives engagement' },
+    { name: 'Location service (free)', phase: 'v1.0', why: 'Privacy product feature' },
+    { name: 'AI chat (limited, 5/day)', phase: 'v1.0', why: 'Engagement without monetization' },
+    { name: 'Morning notification (free)', phase: 'v1.0', why: 'Habit driver' },
+    { name: 'Unlimited AI chat (Pro)', phase: 'Phase 2-3', why: 'Pollinations cost scales with usage' },
+    { name: 'Custom alert rules (Pro)', phase: 'Phase 2-3', why: '"notify if AQI > 80"' },
+    { name: 'Hourly forecast graph (Pro)', phase: 'Phase 2-3', why: 'Premium 24h visual' },
+    { name: '10-day forecast (Pro)', phase: 'Phase 2-3', why: 'Longer lookout = Pro value' },
+    { name: 'Unlimited saved cities (Pro)', phase: 'Phase 2-3', why: 'Storage + logic cost' },
+    { name: 'Travel mode auto-detection (Pro)', phase: 'Phase 2-3', why: 'GPS tracking ongoing' },
+    { name: 'Family plan (₹999/yr, 4 accts)', phase: 'Phase 4+', why: 'Multi-user infrastructure' },
+    { name: 'Wallpaper generator', phase: 'Phase 4+', why: 'Weather-matched lock screen art' },
+    { name: 'Paywalling verdicts', phase: 'Never', why: 'Verdicts ARE the meaning' },
+    { name: 'Ads (even tasteful)', phase: 'Never', why: 'Brand destruction' },
+    { name: 'In-app cosmetics/themes', phase: 'Never', why: 'Free-to-play mechanics; not this product' },
+  ]},
+  { cat: '🏠 Smart Home & IoT', items: [
+    { name: 'IFTTT trigger (AC at heat > 40°C)', phase: 'Phase 4+', why: 'Smart home account; safety liability' },
+    { name: 'Home Assistant integration', phase: 'Phase 4+', why: 'Open-source smart home hook' },
+    { name: 'Google Home action', phase: 'Phase 4+', why: '"Hey Google, ask Kosmos for rain"' },
+    { name: 'Smart blinds automation', phase: 'Phase 4+', why: 'Close at sunset; IoT-specific' },
+    { name: 'Autonomous temperature control', phase: 'Never', why: 'Safety-critical; liability nightmare' },
+    { name: 'Window opening automation', phase: 'Never', why: 'Physical safety risk' },
+  ]},
+  { cat: '🤖 AI & Assistant', items: [
+    { name: 'Ask Kosmos (natural language)', phase: 'v1.0', why: 'Core differentiator; Pollinations free' },
+    { name: 'Plain-language system prompt', phase: 'v1.0', why: 'Warm, Indian-English voice' },
+    { name: 'Context injection (auto weather)', phase: 'v1.0', why: 'Makes answers relevant' },
+    { name: 'Voice input (on-device)', phase: 'Phase 2-3', why: 'SFSpeechRecognizer; iOS' },
+    { name: 'Voice output (TTS)', phase: 'Phase 2-3', why: 'Accessibility feature' },
+    { name: 'Multi-turn memory (2-3 msgs)', phase: 'Phase 2-3', why: 'Pollinations supports it' },
+    { name: 'Groq fallback for speed', phase: 'Phase 2-3', why: 'Sub-second responses; redundancy' },
+    { name: 'AI outfit recommendation', phase: 'Phase 2-3', why: 'Creative; generate from weather' },
+    { name: 'Telugu/Hindi AI responses', phase: 'Phase 2-3', why: 'Language quality testing' },
+    { name: 'Proactive AI (initiates chat)', phase: 'Phase 4+', why: 'UX complexity; risk of creepy' },
+    { name: 'Personality variants', phase: 'Phase 4+', why: 'Brand consistency risk' },
+    { name: 'AI medical diagnosis', phase: 'Never', why: 'Liability + misinformation; refuse in prompt' },
+    { name: 'AI relationship advice', phase: 'Never', why: 'Out of scope; damages brand' },
+  ]},
+  { cat: '🎮 Gamification & Community', items: [
+    { name: 'Referral system', phase: 'Phase 2-3', why: 'Invite 3 friends → 1 month Pro' },
+    { name: 'Streak tracking', phase: 'Phase 2-3', why: 'Habit formation after v1.0 stability' },
+    { name: 'Weekly insights', phase: 'Phase 2-3', why: '"You dodged 12 rainy jogs this week"' },
+    { name: 'Leaderboards (verdicts followed)', phase: 'Phase 4+', why: 'Social engagement' },
+    { name: 'Badge system', phase: 'Phase 4+', why: '"Jog master: 50 jogs"; motivation' },
+    { name: 'Competitive leaderboards', phase: 'Never', why: '"Who\'s hottest today"; tone-deaf, privacy' },
+    { name: 'Loot boxes / random rewards', phase: 'Never', why: 'Gambling mechanics; brand damage' },
+    { name: '"Login streak or lose"', phase: 'Never', why: 'FOMO dark pattern; anti-wellness' },
+  ]},
+];
+
+const PHASE_COLORS = {
+  'v1.0': '#4DC85A',
+  'Phase 2-3': '#3D87D4',
+  'Phase 4+': '#D98C33',
+  'Never': '#8C7366',
+};
+
+const CITIES = {
+  Hyderabad: {
+    tagline: 'Summer afternoon · rain incoming', area: 'Biramguda',
+    nowcast: 'Rain likely in your area (Biramguda) in about an hour — carry a raincoat if you head out.',
+    dateLabel: 'Thu Jun 19', bgTop: '#A8C7E5', bgBottom: '#5E89B8',
+    temp: 34, feelsLike: 38, high: 36, low: 26,
+    conditionLabel: 'Partly cloudy', conditionEmoji: '🌤', mood: 'smile',
+    aqiLabel: 'Good', aqiColor: '#4DC85A',
+    hourly: [
+      { label: '2PM', temp: 34, emoji: '🌤', isNow: true },
+      { label: '3PM', temp: 33, emoji: '🌤' }, { label: '4PM', temp: 31, emoji: '☔' },
+      { label: '5PM', temp: 30, emoji: '☔' }, { label: '6PM', temp: 29, emoji: '🌤' },
+      { label: '7PM', temp: 28, emoji: '🌤' }, { label: '8PM', temp: 27, emoji: '🌙' },
+      { label: '9PM', temp: 26, emoji: '🌙' }, { label: '10PM', temp: 25, emoji: '🌙' },
+      { label: '11PM', temp: 24, emoji: '🌙' }, { label: '12AM', temp: 24, emoji: '🌙' },
+      { label: '1AM', temp: 23, emoji: '🌙' },
+    ],
+    verdicts: [
+      { id: 'raincoat', emoji: '☔', title: 'Take a raincoat', detail: '78% rain · 4–6 PM — carry it before you head out', accent: '#1A5CB3', start: 16, end: 18, label: '4–6 PM' },
+      { id: 'bestWalk.evening', emoji: '🚶', title: 'Best walks: 6–8 AM and 6–9 PM', detail: 'Morning is coolest; evening ~29° and gentlest after the rain.', accent: '#3FA67F', start: 18, end: 21, label: '6–9 PM' },
+      { id: 'mosquito', emoji: '🦟', title: 'More mosquitoes 5–9 PM', detail: 'Cover up — sleeves & repellent in this window; peak after dusk.', accent: '#8C4D80', start: 17, end: 21, label: '5–9 PM' },
+      { id: 'hydration', emoji: '💧', title: 'Drink 3L water today', detail: 'Hot. Keep a bottle close, sip every hour.', accent: '#3F8CD9' },
+      { id: 'vitaminD.morning', emoji: '🌤', title: 'Vitamin D: 8:30–11 AM and 3–5 PM', detail: '15 min of soft sun is enough — skip the harsh 11 AM–3 PM gap.', accent: '#D98C33', start: 9, end: 11, label: '8:30–11 AM' },
+      { id: 'goldenHour.sunset', emoji: '🌅', title: 'Golden hour: 6:42–7:00 PM', detail: 'Warm side light for photos — best 18 min before sunset to dusk.', accent: '#F28C4D', start: 18, end: 19, label: '6:42–7:00 PM' },
+      { id: 'avoidHours', emoji: '🔥', title: 'Avoid outdoors 11 AM–4 PM', detail: '38° + climbing. Plan errands before or after.', accent: '#C74D33', start: 11, end: 16, label: '11 AM–4 PM' },
+    ],
+    chatIntro: 'Rain looks likely around 4 PM — carry the umbrella. Best walk window opens at 6 PM once it passes.',
+    chatSuggestions: ['Should I run at 6 PM?', 'Is it safe for kids outside?', "When's the Vit D window tomorrow?"],
+    mockReply: 'Models split on evening rain — pack the umbrella anyway. Walk window at 6 PM looks better.',
+  },
+
+  Delhi: {
+    tagline: 'Haze + brutal heat', area: 'Connaught Place',
+    nowcast: 'Dust and haze rising in your area (Connaught Place) — keep a mask handy and windows shut for a few hours.',
+    dateLabel: 'Thu Jun 19', bgTop: '#C9AC7E', bgBottom: '#947A5E',
+    temp: 42, feelsLike: 45, high: 44, low: 30,
+    conditionLabel: 'Hazy · bad air', conditionEmoji: '😷', mood: 'smile',
+    aqiLabel: 'Rough', aqiColor: '#FA8C33',
+    hourly: [
+      { label: '2PM', temp: 42, emoji: '🌫', isNow: true },
+      { label: '3PM', temp: 43, emoji: '🌫' }, { label: '4PM', temp: 42, emoji: '☀️' },
+      { label: '5PM', temp: 40, emoji: '☀️' }, { label: '6PM', temp: 38, emoji: '🌤' },
+      { label: '7PM', temp: 36, emoji: '🌤' }, { label: '8PM', temp: 34, emoji: '🌙' },
+      { label: '9PM', temp: 33, emoji: '🌙' },
+    ],
+    verdicts: [
+      { id: 'air', emoji: '😷', title: 'Air is rough — skip the jog', detail: 'AQI in unhealthy range. Mask up if you must go out.', accent: '#EB4747' },
+      { id: 'avoidHours', emoji: '🔥', title: 'Dangerous heat till 6 PM', detail: "Don't fry yourself — 45° feels-like. Stay indoors.", accent: '#C74D33', start: 11, end: 18, label: '11 AM–6 PM' },
+      { id: 'closeWindows', emoji: '🪟', title: 'Keep windows shut', detail: 'Haze rolling in — run AC or purifier if you have one.', accent: '#8C7366', start: 12, end: 20, label: 'All afternoon' },
+      { id: 'hydration', emoji: '💧', title: 'Drink 4L water today', detail: 'Extreme heat + dry air. Sip constantly.', accent: '#3F8CD9' },
+      { id: 'bestWalk.evening', emoji: '🚶', title: 'Best walk: 7–8 PM', detail: 'Air slightly better after sunset — still not great.', accent: '#3FA67F', start: 19, end: 20, label: '7–8 PM' },
+    ],
+    chatIntro: 'Air is rough and heat is brutal till evening. Skip outdoor exercise — best you can do is a short walk after 7 PM.',
+    chatSuggestions: ['Can I go for a run?', 'Should kids play outside?', 'When does air improve?'],
+    mockReply: 'Not today — air stays rough till night. If you must go out, mask up and keep it under 20 min.',
+  },
+
+  Bengaluru: {
+    tagline: 'Cool drizzle · easy day', area: 'Koramangala',
+    nowcast: 'Light drizzle reaching your area (Koramangala) in ~30 min — a foldable umbrella is enough.',
+    dateLabel: 'Thu Jun 19', bgTop: '#7A8B98', bgBottom: '#454D5A',
+    temp: 24, feelsLike: 23, high: 26, low: 19,
+    conditionLabel: 'Light drizzle', conditionEmoji: '🌧', mood: 'umbrella',
+    aqiLabel: 'Good', aqiColor: '#4DC85A',
+    hourly: [
+      { label: '2PM', temp: 24, emoji: '🌧', isNow: true },
+      { label: '3PM', temp: 24, emoji: '🌧' }, { label: '4PM', temp: 23, emoji: '🌧' },
+      { label: '5PM', temp: 23, emoji: '🌤' }, { label: '6PM', temp: 22, emoji: '🌤' },
+      { label: '7PM', temp: 21, emoji: '🌙' }, { label: '8PM', temp: 20, emoji: '🌙' },
+      { label: '9PM', temp: 20, emoji: '🌙' },
+    ],
+    verdicts: [
+      { id: 'umbrella', emoji: '☂️', title: 'Carry umbrella till 5 PM', detail: 'Soft drizzle on and off — foldable fits in your bag.', accent: '#3380C7', start: 14, end: 17, label: '2–5 PM' },
+      { id: 'bestWalk.evening', emoji: '🚶', title: 'Best walks: 7–9 AM and 5–7 PM', detail: 'Drizzle stops · 22° · clean air — easy both ends of the day.', accent: '#3FA67F', start: 17, end: 19, label: '5–7 PM' },
+      { id: 'canJog', emoji: '🏃', title: 'Good jog window: 6 PM', detail: 'Cool, light breeze, no rain — lace up.', accent: '#4DB371', start: 18, end: 19, label: '6 PM' },
+      { id: 'openWindows', emoji: '🪟', title: 'Open windows now', detail: 'Fresh air + cool temps — let it in before evening.', accent: '#80B3D9', start: 14, end: 18, label: '2–6 PM' },
+      { id: 'laundry', emoji: '👕', title: 'Not a laundry day', detail: 'Drizzle till 5 — wait for tomorrow.', accent: '#BFB259' },
+    ],
+    chatIntro: 'Easy day in Bengaluru — drizzle till 5 PM, then a perfect walk window opens up.',
+    chatSuggestions: ['Good time for a run?', 'Can I dry clothes outside?', 'Is it cold enough for a jacket?'],
+    mockReply: '6 PM looks perfect for a jog — drizzle stops, air is clean, and it stays cool.',
+  },
+
+  Mumbai: {
+    tagline: 'Monsoon afternoon', area: 'Andheri',
+    nowcast: 'Heavy showers over your area (Andheri) in the next hour — raincoat, not umbrella, and watch for waterlogging.',
+    dateLabel: 'Thu Jun 19', bgTop: '#3A4252', bgBottom: '#13161F',
+    temp: 28, feelsLike: 32, high: 29, low: 25,
+    conditionLabel: 'Heavy rain', conditionEmoji: '🌧', mood: 'umbrella',
+    aqiLabel: 'OK', aqiColor: '#F7BF33',
+    hourly: [
+      { label: '2PM', temp: 28, emoji: '🌧', isNow: true },
+      { label: '3PM', temp: 28, emoji: '⛈' }, { label: '4PM', temp: 27, emoji: '⛈' },
+      { label: '5PM', temp: 27, emoji: '🌧' }, { label: '6PM', temp: 27, emoji: '🌧' },
+      { label: '7PM', temp: 26, emoji: '🌧' }, { label: '8PM', temp: 26, emoji: '🌙' },
+      { label: '9PM', temp: 26, emoji: '🌙' },
+    ],
+    verdicts: [
+      { id: 'raincoat', emoji: '☔', title: 'Raincoat essential all day', detail: 'Heavy bursts till 7 PM — waterproof shoes too.', accent: '#1A5CB3', start: 12, end: 19, label: 'All afternoon' },
+      { id: 'umbrella', emoji: '☂️', title: 'Umbrella won\'t cut it', detail: 'Wind + heavy rain — raincoat beats umbrella today.', accent: '#3380C7' },
+      { id: 'avoidHours', emoji: '🚫', title: 'Skip outdoor plans', detail: 'Flooding risk in low areas — stay in if you can.', accent: '#C74D33', start: 13, end: 19, label: '1–7 PM' },
+      { id: 'mosquito', emoji: '🦟', title: 'More mosquitoes 6–10 PM', detail: 'Stagnant water after rain = biting hours. Repellent from 6 PM.', accent: '#8C4D80', start: 18, end: 22, label: '6–10 PM' },
+      { id: 'bestWalk.evening', emoji: '🚶', title: 'Walk maybe at 8 PM', detail: 'Rain eases — check local flooding before heading out.', accent: '#3FA67F', start: 20, end: 21, label: '8 PM' },
+    ],
+    chatIntro: 'Heavy monsoon rain all afternoon — raincoat, not umbrella. Outdoor plans are off till evening.',
+    chatSuggestions: ['Will rain stop by evening?', 'Safe to drive?', 'When can I walk the dog?'],
+    mockReply: 'Rain eases around 8 PM but streets may still be wet — short walk only if your area is clear.',
+  },
+
+  Chennai: {
+    tagline: 'Humid coastal heat', area: 'T. Nagar',
+    nowcast: 'No rain, but your area (T. Nagar) stays muggy till evening — carry water if you are out.',
+    dateLabel: 'Thu Jun 19', bgTop: '#7BBAF4', bgBottom: '#3D87D4',
+    temp: 36, feelsLike: 41, high: 37, low: 28,
+    conditionLabel: 'Clear · humid', conditionEmoji: '☀️', mood: 'smile',
+    aqiLabel: 'OK', aqiColor: '#F7BF33',
+    hourly: [
+      { label: '2PM', temp: 36, emoji: '☀️', isNow: true },
+      { label: '3PM', temp: 36, emoji: '☀️' }, { label: '4PM', temp: 35, emoji: '🌤' },
+      { label: '5PM', temp: 34, emoji: '🌤' }, { label: '6PM', temp: 32, emoji: '🌤' },
+      { label: '7PM', temp: 30, emoji: '🌙' }, { label: '8PM', temp: 29, emoji: '🌙' },
+      { label: '9PM', temp: 28, emoji: '🌙' },
+    ],
+    verdicts: [
+      { id: 'heat', emoji: '🔥', title: 'Dangerous heat — stay shaded', detail: '41° feels-like with humidity. AC breaks are mandatory.', accent: '#D96B33', start: 11, end: 16, label: '11 AM–4 PM' },
+      { id: 'hydration', emoji: '💧', title: 'Drink 3.5L water today', detail: 'Humidity makes you sweat without noticing — sip hourly.', accent: '#3F8CD9' },
+      { id: 'sunProtection', emoji: '🧴', title: 'SPF if you step out', detail: 'UV strong even through haze — 30+ SPF, hat, sleeves.', accent: '#EB9933', start: 10, end: 16, label: '10 AM–4 PM' },
+      { id: 'bestWalk.evening', emoji: '🚶', title: 'Best walks: 6–7:30 AM and 6:30–7:30 PM', detail: 'Early morning before the heat; sea breeze makes the evening nicer.', accent: '#3FA67F', start: 18, end: 20, label: '6:30–7:30 PM' },
+      { id: 'goldenHour.sunset', emoji: '🌅', title: 'Golden hour: 6:15–6:35 PM', detail: 'Coastal sunset — soft warm light if the heat allows.', accent: '#F28C4D', start: 18, end: 19, label: '6:15–6:35 PM' },
+    ],
+    chatIntro: 'Brutal humid heat till 4 PM — sea breeze saves the evening walk window around 6:30.',
+    chatSuggestions: ['Beach safe today?', 'Best time for Vit D?', 'How bad is the humidity?'],
+    mockReply: 'Beach is rough till 5 PM — heat index hits 41°. Evening breeze makes 6:30 PM the move.',
+  },
+
+  London: {
+    tagline: 'Classic overcast', area: 'Camden',
+    nowcast: 'Light rain reaching your area (Camden) around 4 PM — grab an umbrella before you leave.',
+    dateLabel: 'Thu Jun 19', bgTop: '#888E9C', bgBottom: '#535869',
+    temp: 16, feelsLike: 14, high: 18, low: 11,
+    conditionLabel: 'Overcast', conditionEmoji: '☁️', mood: 'smile',
+    aqiLabel: 'Good', aqiColor: '#4DC85A',
+    hourly: [
+      { label: '2PM', temp: 16, emoji: '☁️', isNow: true },
+      { label: '3PM', temp: 16, emoji: '☁️' }, { label: '4PM', temp: 15, emoji: '🌧' },
+      { label: '5PM', temp: 15, emoji: '🌧' }, { label: '6PM', temp: 14, emoji: '☁️' },
+      { label: '7PM', temp: 13, emoji: '☁️' }, { label: '8PM', temp: 12, emoji: '🌙' },
+      { label: '9PM', temp: 12, emoji: '🌙' },
+    ],
+    verdicts: [
+      { id: 'umbrella', emoji: '☂️', title: 'Grab umbrella — rain at 4 PM', detail: 'Classic London — light rain 4–5 PM, then clears.', accent: '#3380C7', start: 16, end: 17, label: '4–5 PM' },
+      { id: 'cold', emoji: '🧥', title: 'Layer up — feels like 14°', detail: 'Wind chill all day. Light jacket recommended.', accent: '#66A8D1' },
+      { id: 'bestWalk.evening', emoji: '🚶', title: 'Best walk: 6–7 PM', detail: 'Rain passes · 14° · dry pavement.', accent: '#3FA67F', start: 18, end: 19, label: '6–7 PM' },
+      { id: 'canJog', emoji: '🏃', title: 'Jog window: 6 PM', detail: 'Cool and dry after rain — decent conditions.', accent: '#4DB371', start: 18, end: 19, label: '6 PM' },
+      { id: 'vitaminD.morning', emoji: '🌤', title: 'No Vit D window today', detail: 'Overcast all day — try again tomorrow morning.', accent: '#D98C33' },
+    ],
+    chatIntro: 'Typical London — overcast with rain around 4 PM. Evening walk at 6 looks fine once it passes.',
+    chatSuggestions: ['Do I need a coat?', 'Will it rain all day?', 'Good day for a picnic?'],
+    mockReply: 'Picnic is a no — rain at 4 PM. Evening clears up nicely though.',
+  },
+
+  'New York': {
+    tagline: 'Clear summer day', area: 'Brooklyn',
+    nowcast: 'Clear over your area (Brooklyn) for the next few hours — a good window to be outside.',
+    dateLabel: 'Thu Jun 19', bgTop: '#7BBAF4', bgBottom: '#3D87D4',
+    temp: 27, feelsLike: 28, high: 29, low: 19,
+    conditionLabel: 'Clear', conditionEmoji: '☀️', mood: 'smile',
+    aqiLabel: 'Good', aqiColor: '#4DC85A',
+    hourly: [
+      { label: '2PM', temp: 27, emoji: '☀️', isNow: true },
+      { label: '3PM', temp: 28, emoji: '☀️' }, { label: '4PM', temp: 28, emoji: '☀️' },
+      { label: '5PM', temp: 27, emoji: '🌤' }, { label: '6PM', temp: 26, emoji: '🌤' },
+      { label: '7PM', temp: 24, emoji: '🌤' }, { label: '8PM', temp: 22, emoji: '🌙' },
+      { label: '9PM', temp: 21, emoji: '🌙' },
+    ],
+    verdicts: [
+      { id: 'bestWalk.evening', emoji: '🚶', title: 'Best walk: 7–8 PM', detail: 'Central Park golden hour — 24°, light breeze.', accent: '#3FA67F', start: 19, end: 20, label: '7–8 PM' },
+      { id: 'canJog', emoji: '🏃', title: 'Great jog weather: 6 PM', detail: '27° and dry — perfect conditions.', accent: '#4DB371', start: 18, end: 19, label: '6 PM' },
+      { id: 'vitaminD.morning', emoji: '🌤', title: 'Vitamin D: 7:45–10 AM and 4–6 PM', detail: '15 min of soft sun is enough — skip the strong midday UV.', accent: '#D98C33', start: 8, end: 10, label: '7:45–10 AM' },
+      { id: 'sunProtection', emoji: '🧴', title: 'Sun strong till 4 PM', detail: 'UV 7 at peak — SPF if outdoors.', accent: '#EB9933', start: 11, end: 16, label: '11 AM–4 PM' },
+      { id: 'goldenHour.sunset', emoji: '🌅', title: 'Golden hour: 8:04–8:25 PM', detail: 'Long summer evening — warm light for rooftop photos.', accent: '#F28C4D', start: 19, end: 20, label: '8:04–8:25 PM' },
+    ],
+    chatIntro: 'Beautiful clear day in NYC — jog at 6 PM, walk the park at 7. Sun was strong earlier but evening is perfect.',
+    chatSuggestions: ['Central Park today?', 'UV level now?', 'Outdoor dinner tonight?'],
+    mockReply: 'Central Park at 7 PM is the move — 24°, golden light, no rain on radar.',
+  },
+
+  Tokyo: {
+    tagline: 'Evening clear · cool night', area: 'Shibuya',
+    nowcast: 'Clear skies over your area (Shibuya) — golden light now, staying dry into the evening.',
+    dateLabel: 'Thu Jun 19', bgTop: '#FFB07A', bgBottom: '#C46B82',
+    temp: 22, feelsLike: 21, high: 26, low: 18,
+    conditionLabel: 'Clear evening', conditionEmoji: '🌅', mood: 'smile',
+    aqiLabel: 'Good', aqiColor: '#4DC85A',
+    hourly: [
+      { label: '2PM', temp: 24, emoji: '🌤' }, { label: '3PM', temp: 23, emoji: '🌤' },
+      { label: '4PM', temp: 23, emoji: '🌤' }, { label: '5PM', temp: 22, emoji: '🌅' },
+      { label: '6PM', temp: 22, emoji: '🌅', isNow: true },
+      { label: '7PM', temp: 21, emoji: '🌙' }, { label: '8PM', temp: 20, emoji: '🌙' },
+      { label: '9PM', temp: 19, emoji: '🌙' },
+    ],
+    verdicts: [
+      { id: 'goldenHour.sunset', emoji: '🌅', title: 'Golden hour: now till 7 PM', detail: 'Sunset glow over the city — best light is right now.', accent: '#F28C4D', start: 17, end: 19, label: '5–7 PM' },
+      { id: 'bestWalk.evening', emoji: '🚶', title: 'Perfect walk: 6–8 PM', detail: '22° · clear · low humidity — ideal evening stroll.', accent: '#3FA67F', start: 18, end: 20, label: '6–8 PM' },
+      { id: 'coolerTomorrow', emoji: '🌡', title: 'Cooler tomorrow — 24° high', detail: 'Front passing tonight. Plan outdoor stuff today.', accent: '#7399BF' },
+      { id: 'openWindows', emoji: '🪟', title: 'Open windows tonight', detail: 'Cool 18° overnight — natural AC.', accent: '#80B3D9', start: 20, end: 23, label: '8 PM–midnight' },
+      { id: 'laundry', emoji: '👕', title: 'Great laundry day', detail: 'Dry overnight — low humidity + breeze.', accent: '#BFB259' },
+    ],
+    chatIntro: 'Golden hour is happening right now in Tokyo — best walk window is 6–8 PM before it cools further.',
+    chatSuggestions: ['Rooftop photos now?', 'Will it rain tonight?', 'Jog or walk tonight?'],
+    mockReply: 'Rooftop photos — go now. Golden hour ends around 7 PM and skies stay clear.',
+  },
+};
+
+const CITY_LIST = Object.keys(CITIES).map(name => ({
+  name,
+  full: name + ', ' + (['London','New York','Tokyo'].includes(name) ? name.split(' ').pop() === 'York' ? 'USA' : (name === 'London' ? 'UK' : 'Japan') : 'India'),
+  tagline: CITIES[name].tagline,
+}));
+
+let DATA = { ...CITIES.Hyderabad, city: 'Hyderabad' };
+
+const state = {
+  expandedVerdict: null,
+  enabledVerdicts: new Set(TOGGLES.map(t => t[0])),
+  hiddenCards: {},
+  useCelsius: true,
+  use24h: false,
+  darkMode: false,
+  widgetSize: 'medium',
+  mode: 'default',
+  commute: new Set(['bike', 'walk']),
+  travel: {
+    vibes: new Set(['cool']),
+    audiences: new Set(['all']),
+    distances: new Set([500]),
+    regions: new Set(['All India']),
+  },
+  chatMessages: [],
+};
+
+const COMMUTE_TYPES = [
+  { id: 'bike', emoji: '🏍', label: 'Bike' },
+  { id: 'bus', emoji: '🚌', label: 'Bus' },
+  { id: 'car', emoji: '🚗', label: 'Car' },
+  { id: 'walk', emoji: '🚶', label: 'Walk' },
+];
+
+const COMMUTE_NOUN = { bike: 'on a bike', bus: 'by bus', car: 'driving', walk: 'on foot' };
+const COMMUTE_TAIL = {
+  rain: 'leave by <b>3:40 PM</b> with rain cover — roads turn slippery and traffic slows once it starts.',
+  heat: 'carry water and dodge <b>11 AM–4 PM</b> — open roads and bus stops get brutally hot.',
+};
+
+const ASK_ANSWERS = [
+  { keys: ['dry', 'clothes', 'laundry', 'washing'], reply: 'Risky — rain is likely by 4 PM. Dry them before <b>1 PM</b>, or wait till tomorrow morning when it stays clear till noon.' },
+  { keys: ['rain', 'next hour', 'umbrella', 'raincoat'], reply: 'Yes — light rain is about an hour out for your area. Carry a raincoat if you are heading out; it should pass by 6 PM.' },
+  { keys: ['bike', 'ride', 'two wheeler'], reply: 'Fine right now, but leave by <b>3:40 PM</b>. After that roads get slippery and you will likely get caught in the shower.' },
+  { keys: ['walk', 'jog', 'run'], reply: 'Best window is <b>6–7 PM</b> — once the rain passes the air is cool and clean. Skip the midday heat.' },
+  { keys: ['kid', 'child', 'baby', 'safe'], reply: 'Keep them in till 4 PM — too hot and rain incoming. Evening park run at 6 PM is the safe window.' },
+  { keys: ['vitamin', 'sun', 'sunlight'], reply: 'Vitamin D window opens around <b>9 AM</b> tomorrow — 15 minutes is plenty before the UV climbs.' },
+];
+
+function initState() {
+  state.chatMessages = [{ role: 'assistant', content: DATA.chatIntro }];
+  if (localStorage.getItem('kosmos-dark') === '1') {
+    state.darkMode = true;
+    document.getElementById('phone').classList.add('dark');
+    document.getElementById('toggle-dark').classList.add('on');
+    document.getElementById('dark-mode-label').textContent = 'On — dark cards & sheets';
+  }
+  const savedMode = localStorage.getItem('kosmos-mode');
+  if (savedMode && MODES.some(m => m.id === savedMode)) {
+    state.mode = savedMode;
+  }
+  const savedCommute = localStorage.getItem('kosmos-commute');
+  if (savedCommute) {
+    state.commute = new Set(savedCommute.split(',').filter(Boolean));
+  }
+  renderCommute();
+  setLockscreenClock();
+  applyMode(false);
+}
+
+function getBaseVerdicts() {
+  return modeVerdicts(state.mode, DATA);
+}
+
+function visibleVerdicts() {
+  let list = getBaseVerdicts();
+  if (state.mode === 'default') {
+    list = list.filter(v =>
+      [...state.enabledVerdicts].some(tid => matchesToggle(v.id, tid))
+    );
+  } else {
+    const hidden = state.hiddenCards[state.mode];
+    if (hidden && hidden.size) list = list.filter(v => !hidden.has(v.id));
+  }
+  if (state.mode === 'elder') {
+    list = list.slice(0, 3);
+  }
+  return list;
+}
+
+function matchesToggle(verdictId, toggleId) {
+  return verdictId === toggleId || verdictId.startsWith(toggleId + '.');
+}
+
+function setMode(id) {
+  state.mode = id;
+  state.expandedVerdict = null;
+  localStorage.setItem('kosmos-mode', id);
+  applyMode(true);
+}
+
+function applyMode(rerenderAll) {
+  const mode = MODES.find(m => m.id === state.mode) || MODES[0];
+  const phone = document.getElementById('phone');
+
+  document.getElementById('mode-badge').textContent = mode.emoji + ' ' + mode.name;
+  phone.classList.toggle('elder-ui', state.mode === 'elder');
+  phone.classList.toggle('farmer-ui', state.mode === 'farmer');
+
+  const labels = {
+    default: 'INSIGHTS',
+    employee: 'YOUR WORK DAY',
+    farmer: 'CROP INSIGHTS',
+    family: 'FAMILY INSIGHTS',
+    elder: 'TODAY\'S SUMMARY',
+    photographer: 'SHOOT WINDOWS',
+  };
+  document.getElementById('insights-label').textContent = labels[state.mode] || 'INSIGHTS';
+
+  document.getElementById('timeline-section').style.display =
+    state.mode === 'elder' ? 'none' : 'block';
+  document.getElementById('today-label').style.display =
+    state.mode === 'elder' ? 'none' : 'block';
+  document.getElementById('hourly-label').style.display =
+    state.mode === 'farmer' ? 'none' : 'block';
+  document.getElementById('hourly-strip').style.display =
+    state.mode === 'farmer' ? 'none' : 'flex';
+
+  document.getElementById('verdict-toggles-section').style.display = 'block';
+  document.getElementById('acc-insights').style.display = 'block';
+
+  renderModeGrid();
+  renderVerdictToggles();
+  renderVerdicts();
+  updateTimelineCount();
+  if (rerenderAll) {
+    renderWidget();
+    if (state.mode === 'farmer') {
+      state.chatMessages = [{ role: 'assistant', content: 'Farmer mode — voice and 7-day forecast in v3. Chat disabled for this persona.' }];
+    } else if (state.mode === 'elder') {
+      state.chatMessages = [{ role: 'assistant', content: 'Tap 🔊 Read aloud on the home screen. Simple summary — rain at 4, walk at 6.' }];
+    } else {
+      state.chatMessages = [{ role: 'assistant', content: DATA.chatIntro }];
+    }
+    renderChat();
+    renderSuggestions();
+  }
+}
+
+function renderModeGrid() {
+  document.getElementById('mode-grid').innerHTML = MODES.map(m => `
+    <button class="mode-card ${state.mode === m.id ? 'active' : ''}" onclick="setMode('${m.id}')">
+      <span class="mode-emoji">${m.emoji}</span>
+      <div>
+        <div class="mode-name">${m.name}</div>
+        <div class="mode-desc">${m.desc}</div>
+        <div class="mode-phase">${m.phase}</div>
+      </div>
+    </button>
+  `).join('');
+}
+
+function formatHour(h) {
+  if (state.use24h) return (h < 10 ? '0' : '') + h + ':00';
+  if (h === 0) return '12 AM';
+  if (h < 12) return h + ' AM';
+  if (h === 12) return '12 PM';
+  return (h - 12) + ' PM';
+}
+
+function toF(c) { return Math.round(c * 9 / 5 + 32); }
+function displayTemp(c) { return state.useCelsius ? c + '°' : toF(c) + '°'; }
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  closeSheets();
+  if (name === 'timeline') renderTimeline();
+  if (name === 'widget') renderWidget();
+  if (name === 'travel') renderTravel();
+}
+
+function openSheet(name) {
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('sheet-' + name).classList.add('open');
+  if (name === 'search') filterCities();
+}
+
+function closeSheets() {
+  document.getElementById('overlay').classList.remove('open');
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
+}
+
+function toggleVerdict(id) {
+  state.expandedVerdict = state.expandedVerdict === id ? null : id;
+  renderVerdicts();
+}
+
+function toggleAccordion(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function toggleDarkMode() {
+  state.darkMode = !state.darkMode;
+  document.getElementById('phone').classList.toggle('dark', state.darkMode);
+  document.getElementById('toggle-dark').classList.toggle('on', state.darkMode);
+  document.getElementById('dark-mode-label').textContent = state.darkMode
+    ? 'On — dark cards & sheets' : 'Off — light cards & sheets';
+  localStorage.setItem('kosmos-dark', state.darkMode ? '1' : '0');
+}
+
+function toggleCelsius() {
+  state.useCelsius = !state.useCelsius;
+  document.getElementById('toggle-celsius').classList.toggle('on', state.useCelsius);
+  document.getElementById('temp-unit-label').textContent = state.useCelsius ? 'Celsius °C' : 'Fahrenheit °F';
+  updateHero(); renderHourly(); renderWidget();
+}
+
+function toggle24h() {
+  state.use24h = !state.use24h;
+  document.getElementById('toggle-24h').classList.toggle('on', state.use24h);
+  document.getElementById('time-format-label').textContent = state.use24h ? '24-hour' : '12-hour';
+  renderTimeline();
+}
+
+function toggleVerdictSetting(id) {
+  if (state.mode === 'default') {
+    if (state.enabledVerdicts.has(id)) state.enabledVerdicts.delete(id);
+    else state.enabledVerdicts.add(id);
+  } else {
+    if (!state.hiddenCards[state.mode]) state.hiddenCards[state.mode] = new Set();
+    const hidden = state.hiddenCards[state.mode];
+    if (hidden.has(id)) hidden.delete(id);
+    else hidden.add(id);
+  }
+  renderVerdictToggles(); renderVerdicts(); updateTimelineCount();
+}
+
+function setWidgetSize(size) {
+  state.widgetSize = size;
+  document.getElementById('tab-medium').classList.toggle('active', size === 'medium');
+  document.getElementById('tab-large').classList.toggle('active', size === 'large');
+  document.getElementById('widget-desc').textContent = size === 'medium'
+    ? 'Medium widget (2×1) — the product for Android users'
+    : 'Large widget (4×4) — full insights + hourly strip';
+  renderWidget();
+}
+
+function updateBackground() {
+  document.getElementById('home-bg').style.setProperty('--bg-top', DATA.bgTop);
+  document.getElementById('home-bg').style.setProperty('--bg-bottom', DATA.bgBottom);
+}
+
+function updateCharacter() {
+  const face = document.getElementById('character-face');
+  face.innerHTML = DATA.mood === 'umbrella'
+    ? '<div class="umbrella"></div>'
+    : '<div class="smile"></div>';
+}
+
+function updateHero() {
+  updateBackground();
+  updateCharacter();
+  const place = DATA.area ? DATA.area + ', ' + DATA.city : DATA.city;
+  document.getElementById('location-label').innerHTML =
+    '<span class="gps-dot"></span>' + place + ' · ' + DATA.dateLabel;
+  document.getElementById('hero-temp').textContent = displayTemp(DATA.temp);
+  document.getElementById('hero-condition').textContent = DATA.conditionLabel;
+  document.getElementById('hero-feels').textContent = 'Feels like ' + displayTemp(DATA.feelsLike).replace('°', '') + '°';
+  document.getElementById('hero-hilo').textContent = 'H ' + displayTemp(DATA.high).replace('°', '') + '° · L ' + displayTemp(DATA.low).replace('°', '') + '°';
+  const aqi = document.getElementById('hero-aqi');
+  aqi.textContent = '●' + DATA.aqiLabel;
+  aqi.style.background = DATA.aqiColor;
+  document.getElementById('timeline-sub').textContent = DATA.city + ' · ' + DATA.dateLabel;
+  document.getElementById('current-city-label').textContent = 'Currently: ' + DATA.city;
+  renderNowcast();
+}
+
+function renderNowcast() {
+  const wet = /rain|shower|drizzle/i.test(DATA.nowcast || '');
+  document.getElementById('nowcast-card').innerHTML = `
+    <div class="nc-icon">${wet ? '🌧' : '📍'}</div>
+    <div class="nc-text">
+      <div class="nc-body">${DATA.nowcast || 'Conditions are steady around you for the next hour.'}</div>
+      <div class="nc-meta"><span class="nc-live">●</span> Updated 2 min ago</div>
+    </div>`;
+}
+
+function commuteCategory(id) {
+  if (/raincoat|umbrella/.test(id)) return 'rain';
+  if (/heat|avoidHours/.test(id)) return 'heat';
+  return null;
+}
+
+function commuteSubject(ids) {
+  if (ids.length >= 3) return 'However you get around,';
+  const joined = ids.map(i => COMMUTE_NOUN[i]).join(' or ');
+  return joined.charAt(0).toUpperCase() + joined.slice(1) + ',';
+}
+
+function commuteAdviceHtml(id) {
+  const cat = commuteCategory(id);
+  if (!cat) return '';
+  const ids = COMMUTE_TYPES.filter(c => state.commute.has(c.id)).map(c => c.id);
+  if (!ids.length) return '';
+  return `<div class="commute-advice"><div class="ca-label">For your commute</div><div class="ca-line">${commuteSubject(ids)} ${COMMUTE_TAIL[cat]}</div></div>`;
+}
+
+function renderVerdicts() {
+  document.getElementById('verdicts-list').innerHTML = visibleVerdicts().map(v => `
+    <div class="verdict-card ${state.expandedVerdict === v.id ? 'expanded' : ''}" onclick="toggleVerdict('${v.id}')">
+      <div class="verdict-accent" style="background:${v.accent}"></div>
+      <div class="verdict-emoji">${v.emoji}</div>
+      <div class="verdict-body">
+        <div class="verdict-title">${v.title}</div>
+        <div class="verdict-detail">${v.detail}</div>
+        ${commuteAdviceHtml(v.id)}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCommute() {
+  document.getElementById('commute-grid').innerHTML = COMMUTE_TYPES.map(c => `
+    <button class="commute-chip ${state.commute.has(c.id) ? 'on' : ''}" onclick="toggleCommute('${c.id}')">
+      <span class="cc-emoji">${c.emoji}</span>${c.label}
+    </button>
+  `).join('');
+}
+
+function toggleCommute(id) {
+  if (state.commute.has(id)) {
+    if (state.commute.size > 1) state.commute.delete(id);
+  } else {
+    state.commute.add(id);
+  }
+  localStorage.setItem('kosmos-commute', [...state.commute].join(','));
+  renderCommute();
+  renderVerdicts();
+}
+
+function toggleTravelFilter(key, value) {
+  const set = state.travel[key];
+  const exclusive = { vibes: 'any', audiences: 'all', distances: Infinity, regions: 'All India' }[key];
+  const val = value === 'Infinity' ? Infinity : value;
+
+  if (val === exclusive) {
+    if (set.has(exclusive) && set.size === 1) return;
+    set.clear();
+    set.add(exclusive);
+  } else {
+    set.delete(exclusive);
+    if (set.has(val)) {
+      if (set.size > 1) set.delete(val);
+    } else {
+      set.add(val);
+    }
+    if (!set.size) set.add(exclusive);
+  }
+  renderTravel();
+}
+
+function travelContextLine() {
+  const t = displayTemp(DATA.temp);
+  const { vibes } = state.travel;
+  if (vibes.has('any') || (vibes.has('cool') && vibes.has('beach'))) {
+    return `It's ${t} where you are — showing cooler hills, beaches, and more.`;
+  }
+  if (vibes.has('cool')) return `It's ${t} where you are — showing cooler hill escapes.`;
+  if (vibes.has('beach')) return `It's ${t} where you are — showing beach and sea getaways.`;
+  return `It's ${t} where you are — showing getaways near you.`;
+}
+
+function renderTravel() {
+  document.getElementById('travel-context').textContent = travelContextLine();
+
+  document.getElementById('travel-vibe').innerHTML = TRAVEL_VIBES.map(v => `
+    <button class="commute-chip ${state.travel.vibes.has(v.id) ? 'on' : ''}" onclick="toggleTravelFilter('vibes','${v.id}')">${v.label}</button>
+  `).join('');
+
+  document.getElementById('travel-audience').innerHTML = TRAVEL_AUDIENCES.map(a => `
+    <button class="commute-chip ${state.travel.audiences.has(a.id) ? 'on' : ''}" onclick="toggleTravelFilter('audiences','${a.id}')">${a.label}</button>
+  `).join('');
+
+  document.getElementById('travel-distance').innerHTML = TRAVEL_DISTANCES.map(d => `
+    <button class="commute-chip ${state.travel.distances.has(d.max) ? 'on' : ''}" onclick="toggleTravelFilter('distances',${d.max === Infinity ? 'Infinity' : d.max})">${d.label}</button>
+  `).join('');
+
+  document.getElementById('travel-region').innerHTML = TRAVEL_REGIONS.map(r => `
+    <button class="commute-chip ${state.travel.regions.has(r) ? 'on' : ''}" onclick="toggleTravelFilter('regions',${JSON.stringify(r)})">${r}</button>
+  `).join('');
+
+  const { vibes, audiences, distances, regions } = state.travel;
+  const matches = TRAVEL_DESTINATIONS
+    .filter(d => distances.has(Infinity) || [...distances].some(max => d.distance <= max))
+    .filter(d => regions.has('All India') || regions.has(d.region))
+    .filter(d => vibes.has('any') || vibes.has(d.vibe))
+    .filter(d => audiences.has('all') || d.tags.some(t => audiences.has(t)))
+    .sort((a, b) => a.distance - b.distance);
+
+  const list = document.getElementById('travel-list');
+  if (!matches.length) {
+    list.innerHTML = '<div class="travel-empty">No spots match — try Beach / Sea, widen distance, or pick Everyone.</div>';
+    return;
+  }
+  list.innerHTML = matches.map(d => `
+    <div class="dest-card">
+      <div class="dest-head">
+        <div class="dest-name">${d.name}</div>
+        <div class="dest-temp">${displayTemp(d.temp)}</div>
+      </div>
+      <div class="dest-meta">${d.region} · ${d.distance} km away · ${d.season}</div>
+      <div class="dest-why">${d.why}</div>
+      <div class="dest-tags">
+        <span class="dest-tag">${VIBE_LABEL[d.vibe] || d.vibe}</span>
+        ${d.tags.map(t => `<span class="dest-tag aud">${AUD_LABEL[t]}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderHourly() {
+  document.getElementById('hourly-strip').innerHTML = DATA.hourly.map(h => `
+    <div class="hour-item ${h.isNow ? 'now' : ''}">
+      <div class="hour-label">${h.label}</div>
+      <div class="hour-temp">${state.useCelsius ? h.temp : toF(h.temp)}°</div>
+      <div class="hour-emoji">${h.emoji}</div>
+    </div>
+  `).join('');
+}
+
+function updateTimelineCount() {
+  const count = visibleVerdicts().filter(v => v.start != null).length;
+  document.getElementById('timeline-count').textContent = count + ' timed windows today';
+}
+
+function customizeToggleList() {
+  if (state.mode === 'default') {
+    return TOGGLES.map(([id, label]) => ({
+      id,
+      label,
+      sub: id,
+      on: state.enabledVerdicts.has(id),
+    }));
+  }
+  const hidden = state.hiddenCards[state.mode];
+  return modeVerdicts(state.mode, DATA).map(v => ({
+    id: v.id,
+    label: v.title,
+    sub: v.id,
+    on: !(hidden && hidden.has(v.id)),
+  }));
+}
+
+function renderVerdictToggles() {
+  const items = customizeToggleList();
+  const countEl = document.getElementById('customize-count');
+  if (countEl) countEl.textContent = items.length + ' cards';
+  const descEl = document.getElementById('verdict-toggles-desc');
+  if (descEl) {
+    descEl.textContent = state.mode === 'default'
+      ? 'Toggle off any insight type. Base-ID matching — e.g. vitaminD hides morning + afternoon.'
+      : "Toggle off any card you don't want to see in this mode.";
+  }
+  document.getElementById('verdict-toggles').innerHTML = items.map(item => `
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <div class="title">${item.label}</div>
+        <div class="sub">${item.sub}</div>
+      </div>
+      <div class="toggle ${item.on ? 'on' : ''}" onclick="toggleVerdictSetting(${JSON.stringify(item.id)})"></div>
+    </div>
+  `).join('');
+}
+
+function renderCatalog() {
+  document.getElementById('catalog').innerHTML = FEATURE_CATALOG.map((group, i) => {
+    const accId = 'acc-cat-' + i;
+    const rows = group.items.map(it => `
+      <div class="feature-row">
+        <div class="feature-top">
+          <span class="feature-name">${it.name}</span>
+          <span class="phase-badge" style="background:${PHASE_COLORS[it.phase] || '#8C7366'}">${it.phase}</span>
+        </div>
+        <div class="feature-why">${it.why}</div>
+      </div>
+    `).join('');
+    return `
+      <div class="accordion" id="${accId}">
+        <button class="acc-header" onclick="toggleAccordion('${accId}')">
+          <span><span class="acc-title">${group.cat}</span><span class="acc-count">${group.items.length}</span></span>
+          <span class="acc-chevron">⌄</span>
+        </button>
+        <div class="acc-body">
+          <div class="acc-inner">${rows}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderTimeline() {
+  const timed = visibleVerdicts().filter(v => v.start != null);
+  const hours = Array.from({ length: 19 }, (_, i) => i + 5);
+  document.getElementById('timeline-rows').innerHTML = hours.map(h => {
+    const chips = timed.filter(v => h >= v.start && h <= v.end);
+    const lineH = chips.length === 0 ? 20 : chips.length * 44;
+    return `
+      <div class="timeline-row">
+        <div class="timeline-hour">${formatHour(h)}</div>
+        <div class="timeline-line" style="height:${lineH}px"></div>
+        <div class="timeline-chips">
+          ${chips.map(v => `
+            <div class="timeline-chip" style="background:${v.accent}26">
+              <span class="chip-emoji">${v.emoji}</span>
+              <div>
+                <div class="chip-title">${v.title}</div>
+                <div class="chip-time">${v.label}</div>
+              </div>
+            </div>
+          `).join('') || '<div style="height:4px"></div>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderWidget() {
+  const top = visibleVerdicts().slice(0, state.widgetSize === 'medium' ? 2 : 4);
+  const tempStr = state.useCelsius ? DATA.temp + '°C' : toF(DATA.temp) + '°F';
+  const bg = `linear-gradient(135deg, ${DATA.bgTop}, ${DATA.bgBottom})`;
+
+  if (state.widgetSize === 'medium') {
+    document.getElementById('widget-container').innerHTML = `
+      <div class="widget-preview medium" style="background:${bg}">
+        <div class="widget-top">
+          <span class="widget-city">${DATA.city} · ${tempStr}</span>
+          <div class="widget-meta">
+            <span class="widget-cond">${DATA.conditionEmoji} ${DATA.conditionLabel}</span>
+            <span class="aqi-badge" style="background:${DATA.aqiColor}">●${DATA.aqiLabel}</span>
+          </div>
+        </div>
+        <div class="widget-verdicts">
+          ${top.map(v => `<span class="widget-verdict">${v.emoji} ${v.title}</span>`).join('')}
+        </div>
+      </div>`;
+  } else {
+    const hours = DATA.hourly.slice(0, 8);
+    document.getElementById('widget-container').innerHTML = `
+      <div class="widget-preview large">
+        <div class="widget-top">
+          <div>
+            <div class="widget-city">${DATA.city} · ${DATA.dateLabel}</div>
+            <div class="widget-cond" style="margin-top:4px">${DATA.conditionEmoji} ${DATA.conditionLabel}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="widget-temp-large">${displayTemp(DATA.temp)}</div>
+            <span class="aqi-badge" style="background:${DATA.aqiColor};margin-top:4px;display:inline-block">●${DATA.aqiLabel}</span>
+          </div>
+        </div>
+        <div class="widget-divider"></div>
+        <div class="widget-insights">
+          ${top.map(v => `
+            <div class="widget-insight-row">
+              <span>${v.emoji}</span>
+              <span>${v.title}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="widget-hourly">
+          ${hours.map(h => `
+            <div class="widget-hour-col">
+              <div class="wh-label">${h.label}</div>
+              <div class="wh-temp">${state.useCelsius ? h.temp : toF(h.temp)}°</div>
+              <div class="wh-emoji">${h.emoji}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+}
+
+function filterCities() {
+  const q = document.getElementById('city-search').value.toLowerCase();
+  const filtered = CITY_LIST.filter(c =>
+    c.name.toLowerCase().includes(q) || c.full.toLowerCase().includes(q)
+  );
+  document.getElementById('city-list').innerHTML = filtered.map(c => `
+    <div class="city-item" onclick="selectCity('${c.name}')">
+      ${c.full}
+      <div class="city-sub">${c.tagline}</div>
+    </div>
+  `).join('');
+}
+
+function selectCity(name) {
+  DATA = { ...CITIES[name], city: name };
+  state.expandedVerdict = null;
+  state.chatMessages = [{ role: 'assistant', content: DATA.chatIntro }];
+  updateHero();
+  renderHourly();
+  applyMode(true);
+  closeSheets();
+}
+
+function renderChat() {
+  document.getElementById('chat-messages').innerHTML = state.chatMessages.map(m => `
+    <div class="chat-bubble ${m.role}">${m.content}</div>
+  `).join('');
+  const el = document.getElementById('chat-messages');
+  el.scrollTop = el.scrollHeight;
+}
+
+function renderSuggestions() {
+  if (state.mode === 'farmer') {
+    document.getElementById('chat-suggestions').innerHTML = '';
+    return;
+  }
+  const suggestions = state.mode === 'elder'
+    ? ['Will it rain today?', 'When can I walk?']
+    : ['Can I dry clothes at 4 PM?', 'Will it rain in the next hour?', 'Good time to ride my bike?'];
+  document.getElementById('chat-suggestions').innerHTML = suggestions.map(s => `
+    <button class="suggestion-chip" onclick="askSuggestion(${JSON.stringify(s)})">${s}</button>
+  `).join('');
+}
+
+function answerFor(text) {
+  const q = text.toLowerCase();
+  const hit = ASK_ANSWERS.find(a => a.keys.some(k => q.includes(k)));
+  return hit ? hit.reply : DATA.mockReply;
+}
+
+function askSuggestion(text) {
+  state.chatMessages.push({ role: 'user', content: text });
+  state.chatMessages.push({ role: 'assistant', content: answerFor(text) });
+  renderChat();
+}
+
+function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  state.chatMessages.push({ role: 'user', content: text });
+  state.chatMessages.push({ role: 'assistant', content: answerFor(text) });
+  input.value = '';
+  renderChat();
+}
+
+function setLockscreenClock() {
+  const now = new Date();
+  let h = now.getHours();
+  const m = now.getMinutes().toString().padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  document.getElementById('ls-time').textContent = h12 + ':' + m + ' ' + ampm;
+  document.getElementById('ls-date').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+function showLockscreen() {
+  setLockscreenClock();
+  const wet = /rain|shower|drizzle/i.test(DATA.nowcast || '');
+  document.getElementById('ls-notif-title').textContent =
+    wet ? 'Rain heading your way' : 'Heads up for ' + (DATA.area || DATA.city);
+  document.getElementById('ls-notif-body').textContent = DATA.nowcast || 'Conditions are changing near you.';
+  document.getElementById('lockscreen').classList.add('show');
+}
+
+function hideLockscreen() {
+  document.getElementById('lockscreen').classList.remove('show');
+}
+
+initState();
+updateHero();
+renderHourly();
+renderVerdictToggles();
+renderCatalog();
+renderChat();
+renderSuggestions();
+
+if (!localStorage.getItem('kosmos-alert-seen')) {
+  setTimeout(() => {
+    showLockscreen();
+    localStorage.setItem('kosmos-alert-seen', '1');
+  }, 2000);
+}
+</script>
+</body>
+</html>
