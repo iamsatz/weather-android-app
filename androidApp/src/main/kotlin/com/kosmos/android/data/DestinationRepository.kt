@@ -48,6 +48,7 @@ class DestinationRepository {
                 destination = dest,
                 weather = weather,
                 targetDayOffset = filters.tripDayOffset,
+                tripPurposes = filters.tripPurposes,
             )
             DestinationResult(
                 destination = dest,

@@ -70,6 +70,7 @@ fun TravelScreen(
     onBack: () -> Unit,
     onApplyFilters: (TravelFilters, String) -> Unit,
     onResetFilters: () -> Unit,
+    isTabRoot: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
@@ -81,7 +82,10 @@ fun TravelScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Plan a getaway", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (isTabRoot) "Plan trip" else "Plan a getaway",
+                            fontWeight = FontWeight.SemiBold,
+                        )
                         Text(
                             text = contextLine,
                             fontSize = 12.sp,
@@ -92,7 +96,10 @@ fun TravelScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = if (isTabRoot) "Edit plan" else "Back",
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

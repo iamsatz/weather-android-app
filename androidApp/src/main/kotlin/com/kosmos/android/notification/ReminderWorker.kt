@@ -39,6 +39,13 @@ class ReminderWorker(
         NotificationManagerCompat.from(applicationContext)
             .notify(verdictId.hashCode(), notification)
 
+        NotificationLogger.log(
+            applicationContext,
+            title = "$emoji $title",
+            body = detail,
+            type = "reminder",
+        )
+
         return Result.success()
     }
 

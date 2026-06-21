@@ -58,27 +58,14 @@ fun HeroBlock(
         modifier = modifier
             .fillMaxWidth()
             .alpha(alpha)
-            .padding(top = KosmosDimens.grid, bottom = KosmosDimens.sectionSpacing),
+            .padding(top = 4.dp, bottom = KosmosDimens.grid),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = snapshot.locationLine.uppercase(),
-            style = KosmosTextStyles.locationHeader,
-            color = KosmosColor.textOnGradient.copy(alpha = 0.85f),
-        )
-        if (snapshot.locationSourceLabel.isNotBlank()) {
-            Text(
-                text = snapshot.locationSourceLabel,
-                style = KosmosTextStyles.dateHeader,
-                color = KosmosColor.textOnGradient.copy(alpha = 0.7f),
-                modifier = Modifier.padding(top = 2.dp),
-            )
-        }
         Text(
             text = snapshot.dateLabel,
             style = KosmosTextStyles.dateHeader,
             color = KosmosColor.textOnGradient.copy(alpha = 0.9f),
-            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
+            modifier = Modifier.padding(bottom = 8.dp),
         )
         Text(
             text = "${snapshot.temp}°",
@@ -90,16 +77,17 @@ fun HeroBlock(
                 text = verdict.title,
                 style = KosmosTextStyles.heroVerdictLabel,
                 color = KosmosColor.textOnGradient.copy(alpha = 0.92f),
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = 6.dp),
+                maxLines = 2,
             )
         } ?: Text(
             text = snapshot.conditionLabel,
             style = KosmosTextStyles.conditionLabel,
             color = KosmosColor.textOnGradient,
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = 6.dp),
         )
         Row(
-            modifier = Modifier.padding(top = KosmosDimens.grid),
+            modifier = Modifier.padding(top = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -117,13 +105,13 @@ fun HeroBlock(
                 color = Color(snapshot.aqiColor),
             )
         }
-        Text(
-            text = "H ${snapshot.high}° · L ${snapshot.low}°",
-            style = KosmosTextStyles.hiLo,
-            color = KosmosColor.textOnGradient.copy(alpha = 0.75f),
-            modifier = Modifier.padding(top = 4.dp),
-        )
         if (showNumbers) {
+            Text(
+                text = "H ${snapshot.high}° · L ${snapshot.low}°",
+                style = KosmosTextStyles.hiLo,
+                color = KosmosColor.textOnGradient.copy(alpha = 0.75f),
+                modifier = Modifier.padding(top = 4.dp),
+            )
             Text(
                 text = "UV ${snapshot.uvIndex.toInt()} · Humidity ${snapshot.humidity}%",
                 style = KosmosTextStyles.hiLo,

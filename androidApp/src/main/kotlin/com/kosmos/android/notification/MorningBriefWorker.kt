@@ -57,6 +57,13 @@ class MorningBriefWorker(
             NotificationManagerCompat.from(applicationContext)
                 .notify(NOTIFICATION_ID, notification)
 
+            NotificationLogger.log(
+                applicationContext,
+                title = "Kosmos · ${snapshot.locationLine}",
+                body = body,
+                type = "morning_brief",
+            )
+
             Result.success()
         } catch (_: Exception) {
             Result.retry()

@@ -6,7 +6,10 @@ import com.kosmos.android.model.Verdict
 import com.kosmos.android.model.VerdictPriority
 import com.kosmos.android.model.WeatherCondition
 import com.kosmos.android.model.WeatherSnapshot
+import com.kosmos.android.data.LocationDisplay
+import com.kosmos.android.data.LocationSource
 import com.kosmos.shared.i18n.AppLocale
+import com.kosmos.shared.i18n.LocaleStrings
 import com.kosmos.shared.mode.UserMode
 import com.kosmos.shared.engine.NowcastEngine
 import com.kosmos.shared.engine.PlainLanguage
@@ -22,18 +25,30 @@ object WeatherMapper {
         shared: SharedSnapshot,
         verdicts: List<SharedVerdict>,
         neighborhood: String?,
+        subArea: String? = null,
         country: String?,
         useCelsius: Boolean,
         use24Hour: Boolean,
         updatedMinutesAgo: Int,
+        lastUpdatedAtEpochMs: Long = 0L,
         hasLiveLocation: Boolean,
-        locationSourceLabel: String = "",
+        locationSource: LocationSource = LocationSource.SAVED_CITY,
         locale: AppLocale = AppLocale.EN,
         userMode: UserMode = UserMode.DEFAULT,
     ): WeatherSnapshot {
         val next12 = shared.upcomingHours(12)
 
-        val areaName = PlainLanguage.formatLocationLine(neighborhood, shared.cityName, country)
+        val display = LocationDisplay.from(
+            neighborhood = neighborhood,
+            city = shared.cityName,
+            country = country,
+            source = locationSource,
+            isLiveGps = hasLiveLocation,
+            subArea = subArea,
+        )
+        val areaName = display.appBarTitle.ifBlank {
+            PlainLanguage.formatLocationLine(neighborhood, shared.cityName, country)
+        }
         val nowcast = NowcastEngine.generate(shared.hourly, shared.nowIndex, areaName)
         val fusionSuffix = shared.fusionMeta?.sources?.takeIf { it.size > 1 }?.let {
             " · Fused: ${it.joinToString(" + ")}"
@@ -41,7 +56,11 @@ object WeatherMapper {
 
         return WeatherSnapshot(
             city = shared.cityName,
+            country = country?.trim().orEmpty(),
             locationLine = areaName,
+            locationHeadline = display.headline,
+            locationDetail = display.detailLine,
+            appBarTitle = display.appBarTitle,
             dateLabel = shared.dateLabel,
             temp = PlainLanguage.toDisplayTemp(shared.temp, useCelsius),
             tempCelsius = shared.temp,
@@ -84,8 +103,10 @@ object WeatherMapper {
             nowcast = nowcast.message + fusionSuffix,
             nowcastIsWet = nowcast.isWet,
             updatedMinutesAgo = max(0, updatedMinutesAgo),
+            lastUpdatedAtEpochMs = lastUpdatedAtEpochMs,
+            refreshLabel = RefreshLabelFormatter.format(lastUpdatedAtEpochMs, use24Hour),
             hasLiveLocation = hasLiveLocation,
-            locationSourceLabel = locationSourceLabel,
+            locationSourceLabel = locationSource.displayLabel(),
             userModeId = userMode.id,
             localeCode = locale.code,
             fusionSources = shared.fusionMeta?.sources ?: emptyList(),

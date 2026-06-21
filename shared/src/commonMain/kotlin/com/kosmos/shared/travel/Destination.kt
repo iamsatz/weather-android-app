@@ -49,18 +49,53 @@ data class TravelFilters(
     val distanceMaxKm: Int? = 100,
     val region: String = "All India",
     val tripDayOffset: Int = 0,
+    val tripDays: Int = 2,
+    val destinationQuery: String = "",
+    val destinationLat: Double? = null,
+    val destinationLon: Double? = null,
+    val destinationLabel: String = "",
+    val tripPurposes: Set<String> = setOf("any"),
     val groupSize: String = "2",
     val transport: String = "car",
 ) {
     companion object {
         val distancePresets = listOf(10, 50, 100, 500, 800, 1000)
         val tripWhenOptions = listOf(
-            0 to "Today",
+            0 to "This weekend",
             1 to "Tomorrow",
             3 to "In 3 days",
             7 to "Next week",
             14 to "In 2 weeks",
         )
+        val tripDaysOptions = listOf(1, 2, 3, 5, 7)
+        val wizardDestinationChips = listOf(
+            "Hills" to "cool",
+            "Beach" to "beach",
+            "Goa" to "beach",
+            "Ooty" to "cool",
+            "Near me" to "near",
+            "Surprise me" to "any",
+        )
+        val wizardAudienceOptions = listOf(
+            "solo" to "Alone",
+            "family" to "Family",
+            "friends" to "Friends",
+            "office" to "Office team",
+            "college" to "College gang",
+            "couples" to "Couples",
+            "vlogger" to "Vlogger",
+        )
+        val tripPurposeOptions = listOf(
+            "any" to "Anything",
+            "pleasant" to "Pleasant & easy",
+            "party" to "Party / nightlife",
+            "office_outing" to "Office outing",
+            "college" to "College trip",
+            "adventure" to "Adventure",
+            "relaxing" to "Relaxing",
+            "pilgrimage" to "Pilgrimage / temple",
+        )
+        val wizardDistanceOptions = listOf(50, 100, 300, 500, null)
         val groupOptions = listOf(
             "solo" to "Just me",
             "2" to "2 people",

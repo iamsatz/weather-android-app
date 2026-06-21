@@ -53,9 +53,11 @@ fun ElderHomeScreen(
     snapshot: WeatherSnapshot,
     showNumbers: Boolean,
     isRefreshing: Boolean,
+    isLocating: Boolean = false,
     onRefresh: () -> Unit,
     onSettingsClick: () -> Unit,
     onReadAloud: () -> Unit,
+    onLocationClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val topVerdicts = snapshot.verdicts
@@ -86,23 +88,13 @@ fun ElderHomeScreen(
             ) {
                 Spacer(modifier = Modifier.height(KosmosDimens.screenTop))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = snapshot.locationLine,
-                        style = ElderTypography.cityPill,
-                        color = KosmosColor.textOnGradient,
-                        modifier = Modifier.weight(1f),
-                    )
-                    KosmosIconButton(
-                        icon = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        onClick = onSettingsClick,
-                    )
-                }
+                ElderLocationHeader(
+                    locationLabel = snapshot.headerLocationLabel(),
+                    locationSubtitle = snapshot.headerSubtitle(),
+                    onLocationClick = onLocationClick,
+                    isLocating = isLocating,
+                    onSettingsClick = onSettingsClick,
+                )
 
                 HeroBlock(
                     snapshot = snapshot,

@@ -34,6 +34,9 @@ class MainActivity : ComponentActivity() {
         val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         pendingViewModel?.setLocationPermission(granted)
+        if (granted) {
+            requestNotificationPermissionIfNeeded()
+        }
     }
 
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -55,13 +58,14 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(vm) {
                 pendingViewModel = vm
                 vm.registerPermissionRequester { requestLocationPermission() }
-                val fine = ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION)
-                val coarse = ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_COARSE_LOCATION)
-                val hasLocation = fine == PackageManager.PERMISSION_GRANTED ||
-                    coarse == PackageManager.PERMISSION_GRANTED
-                vm.bootstrap(hasLocation)
+                val hasLocation = hasLocationPermission()
+                if (hasLocation) {
+                    vm.bootstrap(true)
+                    requestNotificationPermissionIfNeeded()
+                } else {
+                    requestLocationPermission()
+                }
                 vm.handleWidgetIntent(intent)
-                requestPermissionsIfNeeded(vm)
             }
 
             LaunchedEffect(vm) {
@@ -109,11 +113,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun syncLocationPermission(viewModel: HomeViewModel) {
+        viewModel.recheckLocationPermission(hasLocationPermission())
+    }
+
+    private fun hasLocationPermission(): Boolean {
         val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
         val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-        val hasLocation = fine == PackageManager.PERMISSION_GRANTED ||
+        return fine == PackageManager.PERMISSION_GRANTED ||
             coarse == PackageManager.PERMISSION_GRANTED
-        viewModel.recheckLocationPermission(hasLocation)
     }
 
     private fun requestLocationPermission() {
@@ -125,21 +132,7 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private fun requestPermissionsIfNeeded(viewModel: HomeViewModel) {
-        val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-        val hasLocation = fine == PackageManager.PERMISSION_GRANTED ||
-            coarse == PackageManager.PERMISSION_GRANTED
-
-        if (!hasLocation) {
-            locationPermissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                ),
-            )
-        }
-
+    private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val notifications = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
             if (notifications != PackageManager.PERMISSION_GRANTED) {

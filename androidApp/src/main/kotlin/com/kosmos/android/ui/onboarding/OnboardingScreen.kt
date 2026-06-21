@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,11 +50,6 @@ private val pages = listOf(
         "Hyper-local for where you are",
         "Allow location so Kosmos can fetch weather at your spot — not to track you. Without GPS we only guess from your network, which can be wrong.",
         "📍",
-    ),
-    OnboardingPage(
-        "Pick the modes that fit you",
-        "Open the Modes tab to add Homemaker, Family, Farmer or Photographer — keep up to 5 and switch anytime. Plus chat, trip planner and home-screen widgets.",
-        "🧩",
     ),
 )
 

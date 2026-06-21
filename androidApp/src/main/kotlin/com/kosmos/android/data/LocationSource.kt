@@ -8,9 +8,9 @@ enum class LocationSource {
     ;
 
     fun displayLabel(): String = when (this) {
-        GPS -> "GPS · accurate"
-        IP_APPROXIMATE -> "Approximate · from network"
-        SAVED_CITY -> "Saved city"
+        GPS -> "GPS"
+        IP_APPROXIMATE -> "IP approx"
+        SAVED_CITY -> "Saved"
         DEFAULT -> "Default area"
     }
 }

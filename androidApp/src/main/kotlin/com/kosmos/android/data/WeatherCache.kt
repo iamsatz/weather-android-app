@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 data class CachedWeatherPayload(
     val snapshot: WeatherSnapshot,
     val neighborhood: String? = null,
+    val subArea: String? = null,
     val country: String? = null,
     val hasLiveLocation: Boolean = false,
     val locationSource: String = LocationSource.SAVED_CITY.name,

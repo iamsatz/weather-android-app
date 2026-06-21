@@ -77,6 +77,17 @@ object DestinationCatalog {
         Destination("sikkim", "Pelling", "West Bengal", 27.300, 88.240, DestinationVibe.COOL, setOf("couples", "family"), "Best Mar–May"),
     )
 
+    fun matchByQuery(query: String): List<Destination> {
+        val trimmed = query.trim()
+        if (trimmed.length < 2) return emptyList()
+        val lower = trimmed.lowercase()
+        return all.filter { dest ->
+            dest.name.lowercase().startsWith(lower) ||
+                dest.region.lowercase().startsWith(lower) ||
+                (lower.length >= 4 && dest.name.lowercase().contains(lower))
+        }
+    }
+
     fun filter(
         fromLat: Double,
         fromLon: Double,
@@ -84,33 +95,73 @@ object DestinationCatalog {
         distanceFn: (Double, Double, Double, Double) -> Double,
     ): List<Pair<Destination, Int>> {
         val maxKm = filters.distanceMaxKm ?: Int.MAX_VALUE
-        return all
+
+        val baseList = when {
+            filters.destinationLat != null && filters.destinationLon != null -> {
+                val lat = filters.destinationLat
+                val lon = filters.destinationLon
+                val label = filters.destinationLabel.ifBlank { filters.destinationQuery }.ifBlank { "Your pick" }
+                val vibe = when {
+                    filters.vibes.contains("cool") -> DestinationVibe.COOL
+                    filters.vibes.contains("beach") -> DestinationVibe.BEACH
+                    else -> DestinationVibe.WARM
+                }
+                val custom = Destination(
+                    id = "custom_${lat}_${lon}",
+                    name = label,
+                    region = "Custom",
+                    latitude = lat,
+                    longitude = lon,
+                    vibe = vibe,
+                    audienceTags = setOf("all", "family", "friends", "couples", "kids"),
+                    seasonNote = "",
+                )
+                listOf(custom)
+            }
+            filters.destinationQuery.isNotBlank() -> {
+                val matched = matchByQuery(filters.destinationQuery)
+                if (matched.isNotEmpty()) matched else all
+            }
+            else -> all
+        }
+
+        return baseList
             .map { dest ->
                 val km = distanceFn(fromLat, fromLon, dest.latitude, dest.longitude).toInt()
                 dest to km
             }
-            .filter { (_, km) -> km <= maxKm }
+            .filter { (dest, km) -> dest.id.startsWith("custom_") || km <= maxKm }
             .filter { (dest, _) ->
-                filters.region == "All India" || dest.region == filters.region
+                dest.id.startsWith("custom_") ||
+                    filters.region == "All India" ||
+                    dest.region == filters.region
             }
             .filter { (dest, _) ->
-                val vibes = filters.vibes
-                vibes.contains("any") ||
-                    vibes.contains(dest.vibe.id) ||
-                    (vibes.contains("cool") && dest.vibe == DestinationVibe.COOL) ||
-                    (vibes.contains("beach") && dest.vibe == DestinationVibe.BEACH)
+                if (dest.id.startsWith("custom_")) {
+                    true
+                } else {
+                    val vibes = filters.vibes
+                    vibes.contains("any") ||
+                        vibes.contains(dest.vibe.id) ||
+                        (vibes.contains("cool") && dest.vibe == DestinationVibe.COOL) ||
+                        (vibes.contains("beach") && dest.vibe == DestinationVibe.BEACH)
+                }
             }
             .filter { (dest, _) ->
-                val audiences = filters.audiences
-                audiences.contains("all") ||
-                    dest.audienceTags.any { it in audiences }
+                if (dest.id.startsWith("custom_")) {
+                    true
+                } else {
+                    val audiences = filters.audiences
+                    audiences.contains("all") ||
+                        dest.audienceTags.any { it in audiences }
+                }
             }
             .filter { (_, km) ->
                 when (filters.transport) {
                     "flight" -> true
                     "train" -> km <= 800
                     "bus" -> km <= 500
-                    else -> km <= 400
+                    else -> km <= 400 || filters.destinationLat != null
                 }
             }
             .sortedBy { (_, km) -> km }

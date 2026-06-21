@@ -24,7 +24,8 @@ object ReminderScheduler {
         detail: String,
         startHour: Int,
     ): Boolean {
-        val delayMs = millisUntil(startHour)
+        val fireTime = fireTimeMs(startHour) ?: return false
+        val delayMs = fireTime - System.currentTimeMillis()
         if (delayMs <= 0) return false
 
         val data = Data.Builder()
@@ -49,6 +50,12 @@ object ReminderScheduler {
 
     fun cancel(context: Context, verdictId: String) {
         WorkManager.getInstance(context).cancelUniqueWork(workName(verdictId))
+    }
+
+    fun fireTimeMs(startHour: Int): Long? {
+        val delayMs = millisUntil(startHour)
+        if (delayMs <= 0) return null
+        return System.currentTimeMillis() + delayMs
     }
 
     private fun workName(verdictId: String) = "reminder_$verdictId"

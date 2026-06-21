@@ -8,6 +8,7 @@ object VerdictLocalizer {
         if (locale == AppLocale.EN) return verdict
         return verdict.copy(
             title = LocaleStrings.verdictTitle(verdict.id, locale, verdict.title),
+            detail = LocaleStrings.verdictDetail(verdict.id, locale, verdict.detail),
         )
     }
 

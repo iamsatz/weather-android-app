@@ -137,4 +137,6 @@ data class ModeCardData(
     val description: String,
     val phase: String,
     val locked: Boolean,
+    val isComingSoon: Boolean = false,
+    val plannedInsights: List<String> = emptyList(),
 )

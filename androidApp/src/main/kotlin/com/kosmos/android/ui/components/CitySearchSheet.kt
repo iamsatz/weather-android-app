@@ -31,24 +31,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kosmos.android.data.GeocodeSearchResult
 import com.kosmos.android.ui.designsystem.tokens.KosmosColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CitySearchSheet(
-    cities: List<String>,
+    searchResults: List<GeocodeSearchResult>,
     currentLocationLine: String,
     hasLocationPermission: Boolean,
     isLocating: Boolean,
+    onQueryChange: (String) -> Unit,
     onUseCurrentLocation: () -> Unit,
-    onCitySelected: (String) -> Unit,
+    onPlaceSelected: (GeocodeSearchResult) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var query by remember { mutableStateOf("") }
-    val filtered = cities.filter {
-        it.contains(query, ignoreCase = true)
-    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -84,7 +83,7 @@ fun CitySearchSheet(
                     )
                     Text(
                         text = if (hasLocationPermission) {
-                            "GPS · uses your phone location"
+                            "Uses your phone location"
                         } else {
                             "Tap to allow location access"
                         },
@@ -108,13 +107,19 @@ fun CitySearchSheet(
 
             OutlinedTextField(
                 value = query,
-                onValueChange = { query = it },
+                onValueChange = {
+                    query = it
+                    onQueryChange(it)
+                },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search city…") },
+                placeholder = { Text("Search city or area…") },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
-                        IconButton(onClick = { query = "" }) {
+                        IconButton(onClick = {
+                            query = ""
+                            onQueryChange("")
+                        }) {
                             Icon(Icons.Default.Close, "Clear")
                         }
                     }
@@ -123,17 +128,23 @@ fun CitySearchSheet(
             )
 
             LazyColumn(modifier = Modifier.padding(top = 8.dp)) {
-                items(filtered) { city ->
-                    Text(
-                        text = city,
+                items(searchResults, key = { "${it.latitude},${it.longitude}" }) { result ->
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                onCitySelected(city)
-                            }
-                            .padding(vertical = 14.dp),
-                        fontSize = 15.sp,
-                    )
+                            .clickable { onPlaceSelected(result) }
+                            .padding(vertical = 12.dp),
+                    ) {
+                        Text(result.label, fontWeight = FontWeight.Medium, fontSize = 15.sp)
+                        if (result.detail.isNotBlank()) {
+                            Text(
+                                result.detail,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            )
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
                 }
             }
         }

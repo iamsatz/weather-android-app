@@ -105,7 +105,7 @@ class AlertCheckWorker(
         )
     }
 
-    private fun postAlert(
+    private suspend fun postAlert(
         channelId: String,
         notificationId: Int,
         title: String,
@@ -140,6 +140,8 @@ class AlertCheckWorker(
         }
 
         NotificationManagerCompat.from(applicationContext).notify(notificationId, builder.build())
+
+        NotificationLogger.log(applicationContext, title = title, body = body, type = channelId)
     }
 
     private fun canPostNotifications(): Boolean {

@@ -6,23 +6,66 @@ import com.kosmos.shared.models.Verdict
 import com.kosmos.shared.models.VerdictPriority
 import com.kosmos.shared.models.WeatherSnapshot
 import com.kosmos.shared.models.upcomingHours
+import com.kosmos.shared.mode.EmployeeProfile
 
 object ModeVerdictEngine {
 
     private val heavyRainCodes = setOf(65, 67, 75, 82, 95, 96, 99)
     private val drizzleCodes = setOf(51, 53, 55, 61, 63, 80, 81)
 
-    fun employeeVerdicts(snapshot: WeatherSnapshot, hidden: Set<String>): List<Verdict> {
+    fun employeeVerdicts(
+        snapshot: WeatherSnapshot,
+        hidden: Set<String>,
+        profile: EmployeeProfile? = null,
+        workWeather: WeatherSnapshot? = null,
+    ): List<Verdict> {
         val next12 = snapshot.upcomingHours(12)
+        val workNext12 = workWeather?.upcomingHours(12) ?: emptyList()
+        val workLabel = profile?.workLabel ?: "office"
         val verdicts = mutableListOf<Verdict>()
 
+        if ("workAir" !in hidden && workWeather != null) {
+            val homeAqi = snapshot.aqi ?: 50
+            val workAqi = workWeather.aqi ?: homeAqi
+            if (workAqi >= 100 || workAqi >= homeAqi + 25) {
+                verdicts += Verdict(
+                    id = "workAir",
+                    emoji = "😷",
+                    title = "Rough air at $workLabel — WFH if you can",
+                    detail = "Air at work is worse than home today — mask on commute or work from home.",
+                    priority = VerdictPriority.ACTION,
+                    accentColor = 0xFFE64D4D,
+                )
+            }
+        }
+
+        if ("workRainEvening" !in hidden && workNext12.isNotEmpty()) {
+            val workEveningRain = workNext12.filter { it.hour in 16..19 }.maxOfOrNull { it.precipProbability } ?: 0
+            if (workEveningRain >= 45) {
+                verdicts += Verdict(
+                    id = "workRainEvening",
+                    emoji = "🌧",
+                    title = "Rain at $workLabel by 6 PM — leave early",
+                    detail = "Work-area rain builds 4–6 PM — wrap up early or keep cover at your desk.",
+                    priority = VerdictPriority.SEVERE,
+                    accentColor = 0xFF1A5CB3,
+                    timeWindow = TimeWindow(16, 18, "4–6 PM"),
+                )
+            }
+        }
+
         if ("commuteOut" !in hidden) {
-            val morningRain = next12.filter { it.hour in 7..11 }.maxOfOrNull { it.precipProbability } ?: 0
+            val morningRain = if (workNext12.isNotEmpty()) {
+                workNext12.filter { it.hour in 7..11 }.maxOfOrNull { it.precipProbability } ?: 0
+            } else {
+                next12.filter { it.hour in 7..11 }.maxOfOrNull { it.precipProbability } ?: 0
+            }
             if (morningRain < 50) {
+                val dest = if (profile?.hasWork == true) workLabel else "work"
                 verdicts += Verdict(
                     id = "commuteOut",
                     emoji = "🛵",
-                    title = "Leave by 9:10 AM — dry commute",
+                    title = "Leave by 9:10 AM — dry commute to $dest",
                     detail = "Clear till noon. Evening rain may mess up the ride back.",
                     priority = VerdictPriority.ACTION,
                     accentColor = 0xFF3380C7,

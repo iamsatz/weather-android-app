@@ -15,22 +15,32 @@ object VerdictEngine {
     fun evaluate(
         snapshot: WeatherSnapshot,
         disabledBaseIds: Set<String> = emptySet(),
+        sensitivityAsthma: Boolean = false,
+        sensitivityKids: Boolean = false,
+        sensitivityPregnancy: Boolean = false,
+        sensitivityNightSafety: Boolean = false,
+        sensitivityWoman: Boolean = false,
     ): List<Verdict> {
         val next12 = snapshot.upcomingHours(12)
         val verdicts = mutableListOf<Verdict>()
+        val jogAqiCap = if (sensitivityKids) 60 else 80
+        val walkAqiCap = if (sensitivityKids || sensitivityAsthma) 70 else 100
 
         verdicts += rainVerdicts(next12, disabledBaseIds)
         windVerdict(snapshot, disabledBaseIds)?.let { verdicts += it }
-        verdicts += heatVerdicts(snapshot, disabledBaseIds)
+        verdicts += heatVerdicts(snapshot, disabledBaseIds, sensitivityPregnancy)
         sunProtectionVerdict(snapshot, disabledBaseIds)?.let { verdicts += it }
         coldVerdict(snapshot, disabledBaseIds)?.let { verdicts += it }
-        airVerdict(snapshot, disabledBaseIds)?.let { verdicts += it }
+        airVerdict(snapshot, disabledBaseIds, sensitivityAsthma)?.let { verdicts += it }
         coolerTomorrowVerdict(snapshot, disabledBaseIds)?.let { verdicts += it }
         verdicts += vitaminDVerdicts(snapshot, disabledBaseIds)
-        verdicts += bestWalkVerdicts(snapshot, disabledBaseIds)
-        avoidHoursVerdict(snapshot, disabledBaseIds)?.let { verdicts += it }
-        canJogVerdict(snapshot, disabledBaseIds)?.let { verdicts += it }
-        hydrationVerdict(snapshot, disabledBaseIds)?.let { verdicts += it }
+        verdicts += bestWalkVerdicts(snapshot, disabledBaseIds, walkAqiCap)
+        avoidHoursVerdict(snapshot, disabledBaseIds, sensitivityPregnancy)?.let { verdicts += it }
+        canJogVerdict(snapshot, disabledBaseIds, jogAqiCap)?.let { verdicts += it }
+        hydrationVerdict(snapshot, disabledBaseIds, sensitivityPregnancy)?.let { verdicts += it }
+        pregnancyHydrationVerdict(snapshot, disabledBaseIds, sensitivityPregnancy)?.let { verdicts += it }
+        nightSafetyVerdict(snapshot, disabledBaseIds, sensitivityNightSafety)?.let { verdicts += it }
+        womanSkinVerdict(snapshot, disabledBaseIds, sensitivityWoman)?.let { verdicts += it }
         mosquitoVerdict(snapshot, disabledBaseIds)?.let { verdicts += it }
         openWindowsVerdict(snapshot, disabledBaseIds)?.let { verdicts += it }
         closeWindowsVerdict(snapshot, disabledBaseIds)?.let { verdicts += it }
@@ -46,6 +56,23 @@ object VerdictEngine {
             val baseId = verdict.id.substringBefore(".")
             baseId !in disabledBaseIds
         }.sortedBy { it.priority.ordinal }
+    }
+
+    fun sensitivityOverlayVerdicts(
+        snapshot: WeatherSnapshot,
+        disabled: Set<String>,
+        sensitivityPregnancy: Boolean,
+        sensitivityNightSafety: Boolean,
+    ): List<Verdict> {
+        if (!sensitivityPregnancy && !sensitivityNightSafety) return emptyList()
+        val verdicts = mutableListOf<Verdict>()
+        if (sensitivityPregnancy) {
+            verdicts += heatVerdicts(snapshot, disabled, pregnancy = true)
+            pregnancyHydrationVerdict(snapshot, disabled, true)?.let { verdicts += it }
+            avoidHoursVerdict(snapshot, disabled, pregnancy = true)?.let { verdicts += it }
+        }
+        nightSafetyVerdict(snapshot, disabled, sensitivityNightSafety)?.let { verdicts += it }
+        return verdicts
     }
 
     fun filterForDisplay(verdicts: List<Verdict>): List<Verdict> {
@@ -150,25 +177,31 @@ object VerdictEngine {
         )
     }
 
-    private fun heatVerdicts(snapshot: WeatherSnapshot, disabled: Set<String>): List<Verdict> {
+    private fun heatVerdicts(snapshot: WeatherSnapshot, disabled: Set<String>, pregnancy: Boolean = false): List<Verdict> {
         if ("heat" in disabled) return emptyList()
         val feels = snapshot.feelsLike
+        val severeAt = if (pregnancy) 35.0 else 38.0
+        val actionAt = if (pregnancy) 32.0 else 35.0
         return when {
-            feels >= 38 -> listOf(
+            feels >= severeAt -> listOf(
                 Verdict(
                     id = "heat",
                     emoji = "🔥",
-                    title = "Brutal heat — protect yourself",
-                    detail = "Umbrella for shade + sunscreen SPF 30+ · Drink 3L water · Avoid 11 AM–4 PM sun",
+                    title = if (pregnancy) "Heat stress — take it easy" else "Brutal heat — protect yourself",
+                    detail = if (pregnancy) {
+                        "Feels ${feels.toInt()}° — shade, water, AC breaks. Skip midday errands."
+                    } else {
+                        "Umbrella for shade + sunscreen SPF 30+ · Drink 3L water · Avoid 11 AM–4 PM sun"
+                    },
                     priority = VerdictPriority.SEVERE,
                     accentColor = 0xFFC74D33,
                 ),
             )
-            feels >= 35 -> listOf(
+            feels >= actionAt -> listOf(
                 Verdict(
                     id = "heat",
                     emoji = "☀",
-                    title = "Hot day — stay hydrated",
+                    title = if (pregnancy) "Warm day — extra hydration" else "Hot day — stay hydrated",
                     detail = "Feels ${feels.toInt()}°. Carry water, light clothes. Sunscreen + hat if going out.",
                     priority = VerdictPriority.ACTION,
                     accentColor = 0xFFE68C33,
@@ -208,9 +241,11 @@ object VerdictEngine {
         return null
     }
 
-    private fun airVerdict(snapshot: WeatherSnapshot, disabled: Set<String>): Verdict? {
+    private fun airVerdict(snapshot: WeatherSnapshot, disabled: Set<String>, strictRespiratory: Boolean): Verdict? {
         if ("air" in disabled) return null
         val aqi = snapshot.aqi ?: return null
+        val roughAt = if (strictRespiratory) 80 else 100
+        val okAt = if (strictRespiratory) 40 else 50
         return when {
             aqi >= 200 -> Verdict(
                 id = "air",
@@ -228,15 +263,19 @@ object VerdictEngine {
                 priority = VerdictPriority.SEVERE,
                 accentColor = 0xFFE64D4D,
             )
-            aqi >= 100 -> Verdict(
+            aqi >= roughAt -> Verdict(
                 id = "air",
                 emoji = "🌫",
-                title = "Air is rough — skip the jog",
-                detail = "Outdoor exercise isn't ideal today.",
+                title = if (strictRespiratory) "Air is rough — take it easy outside" else "Air is rough — skip the jog",
+                detail = if (strictRespiratory) {
+                    "Sensitive lungs — limit outdoor time and keep a mask handy."
+                } else {
+                    "Outdoor exercise isn't ideal today."
+                },
                 priority = VerdictPriority.ACTION,
                 accentColor = 0xFFE68C33,
             )
-            aqi >= 50 -> Verdict(
+            aqi >= okAt -> Verdict(
                 id = "air",
                 emoji = "●",
                 title = "Air is okay",
@@ -331,12 +370,12 @@ object VerdictEngine {
         )
     }
 
-    private fun bestWalkVerdicts(snapshot: WeatherSnapshot, disabled: Set<String>): List<Verdict> {
+    private fun bestWalkVerdicts(snapshot: WeatherSnapshot, disabled: Set<String>, aqiCap: Int): List<Verdict> {
         if ("bestWalk" in disabled) return emptyList()
         val verdicts = mutableListOf<Verdict>()
 
-        findBestWalkWindow(snapshot, 5..9, "bestWalk.morning")?.let { verdicts += it }
-        findBestWalkWindow(snapshot, 16..20, "bestWalk.evening")?.let { verdicts += it }
+        findBestWalkWindow(snapshot, 5..9, "bestWalk.morning", aqiCap)?.let { verdicts += it }
+        findBestWalkWindow(snapshot, 16..20, "bestWalk.evening", aqiCap)?.let { verdicts += it }
 
         return verdicts
     }
@@ -358,9 +397,10 @@ object VerdictEngine {
         snapshot: WeatherSnapshot,
         hourRange: IntRange,
         id: String,
+        aqiCap: Int,
     ): Verdict? {
         val aqi = snapshot.aqi ?: 50
-        if (aqi >= 100) return null
+        if (aqi >= aqiCap) return null
 
         val candidates = snapshot.upcomingHours()
             .filter { it.hour in hourRange && !isRainyHour(it) }
@@ -391,11 +431,13 @@ object VerdictEngine {
         )
     }
 
-    private fun avoidHoursVerdict(snapshot: WeatherSnapshot, disabled: Set<String>): Verdict? {
+    private fun avoidHoursVerdict(snapshot: WeatherSnapshot, disabled: Set<String>, pregnancy: Boolean = false): Verdict? {
         if ("avoidHours" in disabled) return null
+        val tempThreshold = if (pregnancy) 33 else 36
+        val uvThreshold = if (pregnancy) 7 else 9
         val badHours = snapshot.upcomingHours()
             .filter { it.hour <= 16 }
-            .filter { it.temp >= 36 || it.uvIndex >= 9 }
+            .filter { it.temp >= tempThreshold || it.uvIndex >= uvThreshold }
         if (badHours.isEmpty()) return null
 
         val start = badHours.minOf { it.hour }.coerceAtLeast(11)
@@ -412,10 +454,10 @@ object VerdictEngine {
         )
     }
 
-    private fun canJogVerdict(snapshot: WeatherSnapshot, disabled: Set<String>): Verdict? {
+    private fun canJogVerdict(snapshot: WeatherSnapshot, disabled: Set<String>, aqiCap: Int): Verdict? {
         if ("canJog" in disabled) return null
         val aqi = snapshot.aqi ?: return null
-        if (snapshot.feelsLike >= 32 || aqi >= 100) return null
+        if (snapshot.feelsLike >= 32 || aqi >= aqiCap) return null
         if (snapshot.upcomingHours().any { isRainyHour(it) }) return null
 
         val best = snapshot.upcomingHours()
@@ -432,19 +474,71 @@ object VerdictEngine {
         )
     }
 
-    private fun hydrationVerdict(snapshot: WeatherSnapshot, disabled: Set<String>): Verdict? {
+    private fun hydrationVerdict(snapshot: WeatherSnapshot, disabled: Set<String>, pregnancy: Boolean = false): Verdict? {
         if ("hydration" in disabled) return null
-        if (snapshot.feelsLike in 26.0..34.9) {
+        val minFeels = if (pregnancy) 24.0 else 26.0
+        val maxFeels = if (pregnancy) 31.9 else 34.9
+        if (snapshot.feelsLike in minFeels..maxFeels) {
             return Verdict(
                 id = "hydration",
                 emoji = "💧",
-                title = "Drink 3L water today",
-                detail = "Hot. Keep a bottle close, sip every hour.",
-                priority = VerdictPriority.ACTION,
+                title = if (pregnancy) "Sip water through the day" else "Stay hydrated today",
+                detail = if (pregnancy) {
+                    "Warm enough to dehydrate fast — keep a bottle handy even indoors."
+                } else {
+                    "Feels ${snapshot.feelsLike.toInt()}° — aim for 2–3L water today."
+                },
+                priority = VerdictPriority.NORMAL,
                 accentColor = 0xFF3F8CD9,
             )
         }
         return null
+    }
+
+    private fun pregnancyHydrationVerdict(snapshot: WeatherSnapshot, disabled: Set<String>, pregnancy: Boolean): Verdict? {
+        if (!pregnancy || "hydration" in disabled) return null
+        if (snapshot.feelsLike >= 32) return null
+        if (snapshot.feelsLike < 24) return null
+        return Verdict(
+            id = "pregnancyHydration",
+            emoji = "💧",
+            title = "Extra water today",
+            detail = "Even mild heat adds up — sip regularly, don't wait till thirsty.",
+            priority = VerdictPriority.NORMAL,
+            accentColor = 0xFF3F8CD9,
+        )
+    }
+
+    private fun nightSafetyVerdict(snapshot: WeatherSnapshot, disabled: Set<String>, enabled: Boolean): Verdict? {
+        if (!enabled || "nightSafety" in disabled) return null
+        if (!snapshot.isDay) return null
+        val headBackHour = (snapshot.sunsetHour - 1).coerceAtLeast(17)
+        if (snapshot.currentHour < headBackHour - 2) return null
+        return Verdict(
+            id = "nightSafety",
+            emoji = "🌙",
+            title = "Head back before dark",
+            detail = "Light fades around ${PlainLanguage.formatHourLabel(snapshot.sunsetHour)} — plan to be indoors by ${PlainLanguage.formatHourLabel(headBackHour)}.",
+            priority = VerdictPriority.ACTION,
+            accentColor = 0xFF5A6B8C,
+            timeWindow = TimeWindow(headBackHour, snapshot.sunsetHour, PlainLanguage.formatTimeRange(headBackHour, snapshot.sunsetHour)),
+        )
+    }
+
+    private fun womanSkinVerdict(snapshot: WeatherSnapshot, disabled: Set<String>, enabled: Boolean): Verdict? {
+        if (!enabled || "womanSkin" in disabled) return null
+        if (!snapshot.isDay) return null
+        if (snapshot.uvIndex < 4.0) return null
+        val frizzNote = if (snapshot.humidity >= 70) " Humidity will frizz hair — tie it up or use serum." else ""
+        return Verdict(
+            id = "womanSkin",
+            emoji = "☀️",
+            title = "SPF before you step out",
+            detail = "UV peaks mid-morning — sunscreen on face and neck before commute.$frizzNote",
+            priority = VerdictPriority.ACTION,
+            accentColor = 0xFFD98C33,
+            timeWindow = TimeWindow(9, 11, "9–11 AM"),
+        )
     }
 
     private fun mosquitoVerdict(snapshot: WeatherSnapshot, disabled: Set<String>): Verdict? {

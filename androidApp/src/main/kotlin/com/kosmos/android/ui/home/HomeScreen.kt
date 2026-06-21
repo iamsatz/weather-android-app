@@ -14,15 +14,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -50,6 +55,7 @@ import com.kosmos.android.ui.designsystem.tokens.KosmosDimens
 import com.kosmos.android.ui.designsystem.tokens.KosmosTextStyles
 import com.kosmos.android.ui.travel.TravelModeBanner
 import com.kosmos.android.ui.designsystem.tokens.KosmosThemeExt
+import com.kosmos.android.i18n.localized
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -60,6 +66,7 @@ fun HomeScreen(
     insightsLabel: String = "INSIGHTS",
     travelState: com.kosmos.android.data.TravelState = com.kosmos.android.data.TravelState.Inactive,
     isRefreshing: Boolean,
+    isLocating: Boolean = false,
     onInsightsToggle: () -> Unit,
     onRefresh: () -> Unit,
     onSettingsClick: () -> Unit,
@@ -74,6 +81,8 @@ fun HomeScreen(
     onImageShare: ((com.kosmos.android.model.Verdict) -> Unit)? = null,
     onRemind: ((com.kosmos.android.model.Verdict) -> Unit)? = null,
     remindedIds: Set<String> = emptySet(),
+    notificationUnread: Int = 0,
+    onNotificationsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val visibleVerdicts = snapshot.verdicts.filter {
@@ -102,49 +111,45 @@ fun HomeScreen(
             ) {
                 Spacer(modifier = Modifier.height(KosmosDimens.screenTop))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable(onClick = onLocationClick),
-                    ) {
-                        if (snapshot.hasLiveLocation) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(KosmosColor.aqiGood),
-                            )
-                        }
-                    }
-                    Row {
-                        KosmosIconButton(
-                            icon = Icons.Default.Search,
-                            contentDescription = "Search city",
-                            onClick = onSearchClick,
-                        )
-                        KosmosIconButton(
-                            icon = Icons.Default.Menu,
-                            contentDescription = "Settings",
-                            onClick = onSettingsClick,
-                        )
-                    }
-                }
+                HomeLocationHeader(
+                    locationLabel = snapshot.headerLocationLabel(),
+                    locationSubtitle = snapshot.headerSubtitle(),
+                    onLocationClick = onLocationClick,
+                    isLocating = isLocating,
+                    onNotificationsClick = onNotificationsClick,
+                    onSearchClick = onSearchClick,
+                    onSettingsClick = onSettingsClick,
+                    notificationUnread = notificationUnread,
+                )
 
                 HeroBlock(
                     snapshot = snapshot,
                     showNumbers = showNumbers,
-                    modifier = Modifier.clickable(onClick = onLocationClick),
                 )
 
-                SectionLabel(insightsLabel)
-                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Text(
+                        text = "Your day",
+                        style = KosmosTextStyles.settingsTitle,
+                        color = KosmosColor.textOnGradient,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                    )
+                    if (snapshot.refreshLabel.isNotBlank()) {
+                        Text(
+                            text = snapshot.refreshLabel,
+                            style = KosmosTextStyles.dateHeader,
+                            color = KosmosColor.textOnGradient.copy(alpha = 0.8f),
+                            fontSize = 11.sp,
+                        )
+                    }
+                }
                 InsightsDropdown(
                     verdicts = snapshot.verdicts,
                     expanded = insightsExpanded,
@@ -158,24 +163,24 @@ fun HomeScreen(
                 )
 
                 KosmosCardRow(
-                    onClick = onTravelClick,
+                    onClick = onTimelineClick,
                     modifier = Modifier.padding(top = KosmosDimens.cardGap),
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Plan a getaway",
+                            text = "See your day timeline",
                             style = KosmosTextStyles.settingsTitle,
                             color = KosmosThemeExt.colors.textPrimary,
                         )
                         Text(
-                            text = "Weather-first trip picks near you",
+                            text = "Verdicts placed hour by hour",
                             style = KosmosTextStyles.settingsSubtitle,
                             color = KosmosThemeExt.colors.textMuted,
                             modifier = Modifier.padding(top = 2.dp),
                         )
                     }
                     Text(
-                        text = "🧭",
+                        text = "📅",
                         fontSize = 22.sp,
                     )
                 }
@@ -188,43 +193,17 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(KosmosDimens.cardGap))
                 }
 
-                SectionLabel("UPDATES")
-                Spacer(modifier = Modifier.height(4.dp))
-                UpdatesFeed(snapshot = snapshot)
-
-                Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
-
-                SectionLabel("NEXT 12 HOURS")
+                SectionLabel("NEXT 4 HOURS")
                 HourlyStrip(
-                    hourly = snapshot.hourly,
+                    hourly = snapshot.hourly.take(4),
                     modifier = Modifier.padding(vertical = KosmosDimens.grid),
                 )
 
                 Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
 
-                SectionLabel("TODAY")
-                Spacer(modifier = Modifier.height(KosmosDimens.cardGap))
-                KosmosCardRow(onClick = onTimelineClick) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "See your day timeline",
-                            style = KosmosTextStyles.settingsTitle,
-                            color = KosmosThemeExt.colors.textPrimary,
-                        )
-                        Text(
-                            text = "${visibleVerdicts.count { it.timeWindow != null }} timed windows today",
-                            style = KosmosTextStyles.settingsSubtitle,
-                            color = KosmosThemeExt.colors.textMuted,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                    }
-                    Text(
-                        text = "→",
-                        fontSize = 22.sp,
-                        color = KosmosColor.primary,
-                        fontWeight = FontWeight.Normal,
-                    )
-                }
+                SectionLabel("UPDATES")
+                Spacer(modifier = Modifier.height(4.dp))
+                UpdatesFeed(snapshot = snapshot)
 
                 Spacer(modifier = Modifier.height(KosmosDimens.bottomScrollPadding))
             }

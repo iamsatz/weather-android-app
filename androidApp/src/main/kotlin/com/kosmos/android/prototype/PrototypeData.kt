@@ -11,7 +11,10 @@ object PrototypeData {
 
     val hyderabadSummerDay = WeatherSnapshot(
         city = "Hyderabad",
+        country = "India",
         locationLine = "Gachibowli, Hyderabad",
+        locationHeadline = "Gachibowli",
+        locationDetail = "Hyderabad · India",
         dateLabel = "Thu Jun 19",
         temp = 34,
         tempCelsius = 34.0,

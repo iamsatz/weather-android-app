@@ -40,18 +40,21 @@ import com.kosmos.android.ui.chat.ChatSheet
 import com.kosmos.android.ui.components.CitySearchSheet
 import com.kosmos.android.ui.farmer.FarmerHomeScreen
 import com.kosmos.android.ui.farmer.FarmerSetupScreen
+import com.kosmos.android.ui.employee.EmployeeSetupScreen
 import com.kosmos.android.ui.home.ElderHomeScreen
 import com.kosmos.android.ui.home.HomeScreen
+import com.kosmos.android.ui.home.HomeSkeleton
 import com.kosmos.android.ui.onboarding.OnboardingScreen
 import com.kosmos.android.ui.plus.KosmosPlusScreen
 import com.kosmos.android.ui.settings.SettingsScreen
-import com.kosmos.android.ui.modes.ModeLibraryScreen
+import com.kosmos.android.ui.modes.AlphaModesPlaceholderScreen
 import com.kosmos.android.ui.timeline.TimelineScreen
 import com.kosmos.android.ui.travel.HyperLocalScreen
 import com.kosmos.android.ui.diary.WeatherDiaryScreen
+import com.kosmos.android.ui.notifications.NotificationInboxScreen
 import com.kosmos.android.ui.radar.RadarScreen
 import com.kosmos.android.ui.travel.TravelDashboardScreen
-import com.kosmos.android.ui.travel.TravelScreen
+import com.kosmos.android.ui.travel.TripPlanTab
 import com.kosmos.android.ui.widget.WidgetPreviewScreen
 import com.kosmos.shared.mode.UserMode
 
@@ -66,8 +69,10 @@ object Routes {
     const val TRAVEL_DASHBOARD = "travel_dashboard"
     const val HYPER_LOCAL = "hyper_local"
     const val FARMER_SETUP = "farmer_setup"
+    const val EMPLOYEE_SETUP = "employee_setup"
     const val RADAR = "radar"
     const val DIARY = "weather_diary"
+    const val NOTIFICATIONS = "notifications"
 }
 
 @Composable
@@ -87,6 +92,7 @@ fun KosmosNavHost(
     val showNumbers by viewModel.showNumbers.collectAsState()
     val appLocale by viewModel.appLocale.collectAsState()
     val userMode by viewModel.userMode.collectAsState()
+    val activeModeIds by viewModel.activeModeIds.collectAsState()
     val commuteModes by viewModel.commuteModes.collectAsState()
     val isKosmosPlus by viewModel.isKosmosPlus.collectAsState()
     val addedModes by viewModel.addedModes.collectAsState()
@@ -107,10 +113,13 @@ fun KosmosNavHost(
     val travelDashboard by viewModel.travelDashboard.collectAsState()
     val travelDashboardVerdicts by viewModel.travelDashboardVerdicts.collectAsState()
     val travelDashboardLoading by viewModel.travelDashboardLoading.collectAsState()
+    val showTripResults by viewModel.showTripResults.collectAsState()
     val hyperLocalResult by viewModel.hyperLocalResult.collectAsState()
     val hyperLocalLoading by viewModel.hyperLocalLoading.collectAsState()
     val farmerProfile by viewModel.farmerProfile.collectAsState()
-    val radarUrl by viewModel.radarUrl.collectAsState()
+    val employeeProfile by viewModel.employeeProfile.collectAsState()
+    val pendingEmployeeSetup by viewModel.pendingEmployeeSetup.collectAsState()
+    val radarResult by viewModel.radarResult.collectAsState()
     val radarLoading by viewModel.radarLoading.collectAsState()
     val diaryEntries by viewModel.diaryEntries.collectAsState()
     val weeklyDigestEnabled by viewModel.weeklyDigestEnabled.collectAsState()
@@ -119,6 +128,15 @@ fun KosmosNavHost(
     val refreshIntervalMinutes by viewModel.refreshIntervalMinutes.collectAsState()
     val savedPlaces by viewModel.savedPlaces.collectAsState()
     val verdictCategories by viewModel.verdictCategories.collectAsState()
+    val notifications by viewModel.notifications.collectAsState()
+    val scheduledReminders by viewModel.scheduledReminders.collectAsState()
+    val homeSearchResults by viewModel.homeSearchResults.collectAsState()
+    val placeSearchResults by viewModel.placeSearchResults.collectAsState()
+    val tripWizardDraft by viewModel.tripWizardDraft.collectAsState()
+    val sensitivityAsthma by viewModel.sensitivityAsthma.collectAsState()
+    val sensitivityKids by viewModel.sensitivityKids.collectAsState()
+    val sensitivityWoman by viewModel.sensitivityWoman.collectAsState()
+    val notificationUnread by viewModel.notificationUnread.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     if (!onboardingDone) {
@@ -139,21 +157,22 @@ fun KosmosNavHost(
         }
     }
 
+    LaunchedEffect(pendingEmployeeSetup) {
+        if (pendingEmployeeSetup) {
+            navController.navigate(Routes.EMPLOYEE_SETUP)
+        }
+    }
+
     androidx.compose.runtime.CompositionLocalProvider(LocalAppLocale provides appLocale) {
         when (val state = weatherState) {
             is WeatherUiState.Loading, is WeatherUiState.Locating -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        if (state is WeatherUiState.Locating || isLocating) {
-                            Text(
-                                text = "Finding your location…",
-                                modifier = Modifier.padding(top = 16.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            )
-                        }
-                    }
-                }
+                HomeSkeleton(
+                    message = if (isLocating || hasLocationPermission || state is WeatherUiState.Locating) {
+                        "Finding your area…"
+                    } else {
+                        "Loading weather…"
+                    },
+                )
             }
             is WeatherUiState.Error -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -177,7 +196,7 @@ fun KosmosNavHost(
                 val snapshot = state.snapshot
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route ?: Routes.HOME
-                val topLevelRoutes = setOf(Routes.HOME, Routes.TIMELINE, Routes.MODES)
+                val topLevelRoutes = setOf(Routes.HOME, Routes.TRAVEL)
                 val showBottomBar = currentRoute in topLevelRoutes
 
                 Scaffold(
@@ -211,9 +230,11 @@ fun KosmosNavHost(
                                 snapshot = snapshot,
                                 showNumbers = showNumbers,
                                 isRefreshing = isRefreshing,
+                                isLocating = isLocating,
                                 onRefresh = { viewModel.refreshWeather(pullToRefresh = true) },
                                 onSettingsClick = { navController.navigate(Routes.SETTINGS) },
                                 onReadAloud = viewModel::readBriefAloud,
+                                onLocationClick = viewModel::openCitySearch,
                             )
                             UserMode.FARMER -> FarmerHomeScreen(
                                 snapshot = snapshot,
@@ -230,6 +251,7 @@ fun KosmosNavHost(
                                 insightsLabel = viewModel.insightsSectionLabel(),
                                 travelState = travelState,
                                 isRefreshing = isRefreshing,
+                                isLocating = isLocating,
                                 onInsightsToggle = viewModel::toggleInsights,
                                 onRefresh = { viewModel.refreshWeather(pullToRefresh = true) },
                                 onSettingsClick = { navController.navigate(Routes.SETTINGS) },
@@ -259,8 +281,33 @@ fun KosmosNavHost(
                                 },
                                 onRemind = viewModel::toggleReminder,
                                 remindedIds = reminderIds,
+                                notificationUnread = notificationUnread,
+                                onNotificationsClick = {
+                                    viewModel.loadNotifications()
+                                    navController.navigate(Routes.NOTIFICATIONS)
+                                },
                             )
                         }
+                    }
+
+                    composable(Routes.TRAVEL) {
+                        TripPlanTab(
+                            filters = travelFilters,
+                            results = travelResults,
+                            contextLine = travelContextLine,
+                            isLoading = travelLoading,
+                            manualKm = manualKm,
+                            useCelsius = useCelsius,
+                            showResults = showTripResults,
+                            savedDraft = tripWizardDraft,
+                            searchResults = placeSearchResults,
+                            onSearchQueryChange = viewModel::searchTripDestinations,
+                            onDraftChange = viewModel::saveTripWizardDraft,
+                            onWizardComplete = viewModel::completeTripWizard,
+                            onEditPlan = viewModel::editTripPlan,
+                            onApplyFilters = viewModel::applyTravelFilters,
+                            onResetFilters = viewModel::resetTravelFilters,
+                        )
                     }
 
                     composable(Routes.TIMELINE) {
@@ -272,15 +319,7 @@ fun KosmosNavHost(
                     }
 
                     composable(Routes.MODES) {
-                        ModeLibraryScreen(
-                            modeCards = viewModel.modeCards(),
-                            addedModeIds = addedModes,
-                            activeModeId = userMode.id,
-                            onActivate = viewModel::setUserMode,
-                            onAdd = viewModel::addMode,
-                            onRemove = viewModel::removeMode,
-                            onOpenSettings = { navController.navigate(Routes.SETTINGS) },
-                        )
+                        AlphaModesPlaceholderScreen()
                     }
 
                     composable(Routes.SETTINGS) {
@@ -293,19 +332,18 @@ fun KosmosNavHost(
                             useDarkMode = useDarkMode,
                             showNumbers = showNumbers,
                             appLocale = appLocale,
-                            userModeId = userMode.id,
                             commuteModes = commuteModes,
                             morningBriefEnabled = morningBriefEnabled,
-                            modeCards = viewModel.modeCards(),
+                            workPlaceLabel = employeeProfile.workLabel.orEmpty(),
                             onVerdictToggle = viewModel::toggleVerdict,
                             onCelsiusToggle = viewModel::toggleCelsius,
                             on24HourToggle = viewModel::toggle24Hour,
                             onDarkModeToggle = viewModel::toggleDarkMode,
                             onShowNumbersToggle = viewModel::toggleShowNumbers,
                             onLocaleSelect = viewModel::setLocale,
-                            onModeSelect = viewModel::setUserMode,
                             onCommuteToggle = viewModel::toggleCommute,
                             onMorningBriefToggle = viewModel::toggleMorningBrief,
+                            onWorkPlaceClick = { navController.navigate(Routes.EMPLOYEE_SETUP) },
                             onWidgetPreviewClick = { navController.navigate(Routes.WIDGET) },
                             onRadarClick = {
                                 viewModel.loadRadar()
@@ -317,13 +355,27 @@ fun KosmosNavHost(
                             },
                             onWallpaperClick = { viewModel.applyWeatherWallpaper() },
                             onTripPlannerClick = {
-                                viewModel.loadDestinations()
+                                viewModel.editTripPlan()
                                 navController.navigate(Routes.TRAVEL)
                             },
+                            onEmployeeSetupClick = { navController.navigate(Routes.EMPLOYEE_SETUP) },
+                            onNotificationsClick = {
+                                viewModel.loadNotifications()
+                                navController.navigate(Routes.NOTIFICATIONS)
+                            },
+                            onSendTestNotification = viewModel::sendTestNotification,
                             refreshIntervalMinutes = refreshIntervalMinutes,
                             onRefreshIntervalSelect = viewModel::setRefreshInterval,
                             weeklyDigestEnabled = weeklyDigestEnabled,
                             onWeeklyDigestToggle = viewModel::toggleWeeklyDigest,
+                            sensitivityAsthma = sensitivityAsthma,
+                            sensitivityKids = sensitivityKids,
+                            sensitivityWoman = sensitivityWoman,
+                            onSensitivityAsthmaToggle = viewModel::toggleSensitivityAsthma,
+                            onSensitivityKidsToggle = viewModel::toggleSensitivityKids,
+                            onSensitivityWomanToggle = viewModel::toggleSensitivityWoman,
+                            locationLine = snapshot.appBarTitle.ifBlank { snapshot.locationLine },
+                            locationSourceLabel = snapshot.locationSourceLabel,
                             onBack = { navController.popBackStack() },
                         )
                     }
@@ -342,20 +394,6 @@ fun KosmosNavHost(
                                 (context as? android.app.Activity)?.let { viewModel.launchPurchase(it) }
                             },
                             onBack = { navController.popBackStack() },
-                        )
-                    }
-
-                    composable(Routes.TRAVEL) {
-                        TravelScreen(
-                            contextLine = travelContextLine,
-                            filters = travelFilters,
-                            results = travelResults,
-                            isLoading = travelLoading,
-                            manualKm = manualKm,
-                            useCelsius = useCelsius,
-                            onBack = { navController.popBackStack() },
-                            onApplyFilters = viewModel::applyTravelFilters,
-                            onResetFilters = viewModel::resetTravelFilters,
                         )
                     }
 
@@ -399,12 +437,34 @@ fun KosmosNavHost(
                         )
                     }
 
+                    composable(Routes.EMPLOYEE_SETUP) {
+                        EmployeeSetupScreen(
+                            profile = employeeProfile,
+                            currentLocationLine = snapshot.locationLine,
+                            onBack = {
+                                viewModel.clearPendingEmployeeSetup()
+                                navController.popBackStack()
+                            },
+                            onUseCurrentLocation = viewModel::useCurrentLocationAsEmployeeHome,
+                            onSave = { profile ->
+                                viewModel.saveEmployeeProfile(profile)
+                                navController.popBackStack()
+                            },
+                            onSkip = {
+                                viewModel.clearPendingEmployeeSetup()
+                                navController.popBackStack()
+                            },
+                        )
+                    }
+
                     composable(Routes.RADAR) {
                         RadarScreen(
-                            radarUrl = radarUrl,
+                            radarResult = radarResult,
                             isLoading = radarLoading,
                             locationLine = snapshot.locationLine,
+                            caption = viewModel.radarCaption(),
                             onBack = { navController.popBackStack() },
+                            onRetry = viewModel::loadRadar,
                         )
                     }
 
@@ -415,16 +475,29 @@ fun KosmosNavHost(
                             onSaveEntry = viewModel::saveDiaryEntry,
                         )
                     }
+
+                    composable(Routes.NOTIFICATIONS) {
+                        NotificationInboxScreen(
+                            entries = notifications,
+                            upcomingReminders = scheduledReminders,
+                            onBack = {
+                                viewModel.markNotificationsSeen()
+                                navController.popBackStack()
+                            },
+                            onCancelReminder = viewModel::cancelScheduledReminder,
+                        )
+                    }
                 }
 
             if (showCitySearch) {
                 CitySearchSheet(
-                    cities = LocationRepository.presetCities.map { it.first },
+                    searchResults = homeSearchResults,
                     currentLocationLine = snapshot.locationLine,
                     hasLocationPermission = hasLocationPermission,
                     isLocating = isLocating,
+                    onQueryChange = viewModel::searchHomePlaces,
                     onUseCurrentLocation = viewModel::useCurrentLocation,
-                    onCitySelected = viewModel::onCitySelected,
+                    onPlaceSelected = viewModel::onPlaceSelected,
                     onDismiss = viewModel::closeCitySearch,
                 )
             }
@@ -461,8 +534,7 @@ private fun KosmosBottomBar(
     data class Tab(val route: String, val emoji: String, val labelKey: String)
     val tabs = listOf(
         Tab(Routes.HOME, "🏠", "tab_today"),
-        Tab(Routes.TIMELINE, "📅", "tab_plan"),
-        Tab(Routes.MODES, "🧩", "tab_modes"),
+        Tab(Routes.TRAVEL, "🧭", "tab_plan"),
     )
     NavigationBar {
         tabs.forEach { tab ->

@@ -16,6 +16,9 @@ import com.google.android.gms.tasks.CancellationTokenSource
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.header
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -31,7 +34,15 @@ import kotlin.math.abs
 data class GeoLocation(
     val city: String,
     val neighborhood: String? = null,
+    val subArea: String? = null,
     val country: String? = null,
+    val latitude: Double,
+    val longitude: Double,
+)
+
+data class GeocodeSearchResult(
+    val label: String,
+    val detail: String,
     val latitude: Double,
     val longitude: Double,
 )
@@ -68,7 +79,7 @@ class LocationRepository(
             if (hasPermission && wantsLiveGps && isLocationServicesEnabled()) {
                 obtainDeviceFix()?.let { fix ->
                     return@withLock ResolvedLocation(
-                        buildGeoFromFix(fix),
+                        buildGeoFromFixFast(fix),
                         isLiveGps = true,
                         source = LocationSource.GPS,
                     )
@@ -111,6 +122,7 @@ class LocationRepository(
     private fun savedToGeo(saved: SavedLocation): GeoLocation = GeoLocation(
         city = saved.city,
         neighborhood = saved.neighborhood,
+        subArea = saved.subArea,
         country = saved.country,
         latitude = saved.latitude,
         longitude = saved.longitude,
@@ -118,16 +130,43 @@ class LocationRepository(
 
     @SuppressLint("MissingPermission")
     private suspend fun obtainDeviceFix(): Location? {
-        val cached = readLastKnownLocation()
-        if (cached != null && cached.accuracy <= 200f) return cached
+        readLastKnownLocation()?.takeIf { it.isUsableCachedFix() }?.let { return it }
 
-        awaitBestLocationFix()?.let { return it }
+        requestSingleFix(Priority.PRIORITY_BALANCED_POWER_ACCURACY, BALANCED_FIX_TIMEOUT_MS)?.let { return it }
 
-        requestSingleFix(Priority.PRIORITY_HIGH_ACCURACY, 15_000)?.let { return it }
-        requestSingleFix(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 10_000)?.let { return it }
+        awaitBestLocationFix(HIGH_ACCURACY_BURST_MS)?.let { return it }
 
-        return cached?.takeIf { it.accuracy <= 200f }
-            ?: readLastKnownLocation()?.takeIf { it.accuracy <= 200f }
+        return readLastKnownLocation()?.takeIf { it.accuracy <= 1_000f }
+    }
+
+    private fun Location.isUsableCachedFix(): Boolean {
+        val ageMs = System.currentTimeMillis() - time
+        return ageMs <= MAX_CACHED_FIX_AGE_MS && accuracy <= MAX_CACHED_FIX_ACCURACY_M
+    }
+
+    /** Coords + India catalog snap — no network geocode wait. */
+    private fun buildGeoFromFixFast(fix: Location): GeoLocation {
+        val base = GeoLocation(
+            city = "Near you",
+            neighborhood = null,
+            country = null,
+            latitude = fix.latitude,
+            longitude = fix.longitude,
+        )
+        return IndiaPlacesCatalog.enrichGeo(base)
+    }
+
+    /** Full geocode path — used for background label refinement. */
+    private suspend fun buildGeoFromFix(fix: Location): GeoLocation {
+        val raw = reverseGeocode(fix.latitude, fix.longitude, freshGps = true)
+            ?: GeoLocation(
+                city = "Near you",
+                neighborhood = null,
+                country = null,
+                latitude = fix.latitude,
+                longitude = fix.longitude,
+            )
+        return IndiaPlacesCatalog.enrichGeo(raw)
     }
 
     @SuppressLint("MissingPermission")
@@ -151,7 +190,7 @@ class LocationRepository(
         }
 
     @SuppressLint("MissingPermission")
-    private suspend fun awaitBestLocationFix(timeoutMs: Long = 20_000): Location? =
+    private suspend fun awaitBestLocationFix(timeoutMs: Long = HIGH_ACCURACY_BURST_MS): Location? =
         withTimeoutOrNull(timeoutMs) {
             suspendCancellableCoroutine { cont ->
                 var best: Location? = null
@@ -185,21 +224,55 @@ class LocationRepository(
             }
         }
 
-    /** Weather uses lat/lon — city label is optional. Never drop a GPS fix because geocoding failed. */
-    private suspend fun buildGeoFromFix(fix: Location): GeoLocation {
-        reverseGeocode(fix.latitude, fix.longitude, freshGps = true)?.let { return it }
-        return GeoLocation(
-            city = "Near you",
-            neighborhood = null,
-            country = null,
-            latitude = fix.latitude,
-            longitude = fix.longitude,
-        )
+    /** Keeps display labels stable when GPS jitter is under 500 m. Coords always update. */
+    suspend fun stabilizeForDisplay(incoming: GeoLocation, saved: SavedLocation?): GeoLocation {
+        val prefs = PreferencesRepository(context)
+        val baseline = saved ?: prefs.getSavedLocation()
+        return IndiaPlacesCatalog.stabilizeLabels(incoming, baseline)
     }
 
-    suspend fun reverseGeocode(lat: Double, lon: Double, freshGps: Boolean = false): GeoLocation? {
-        fetchOpenMeteoReverse(lat, lon, freshGps)?.let { return it }
-        return geocodeWithAndroid(lat, lon, freshGps)
+
+    suspend fun reverseGeocode(lat: Double, lon: Double, freshGps: Boolean = false): GeoLocation? =
+        coroutineScope {
+            val android = async(Dispatchers.IO) { geocodeWithAndroid(lat, lon, freshGps) }
+            val openMeteo = async(Dispatchers.IO) { fetchOpenMeteoReverse(lat, lon) }
+            val bigData = async(Dispatchers.IO) { fetchBigDataCloudReverse(lat, lon) }
+            val nominatim = async(Dispatchers.IO) { fetchNominatimReverse(lat, lon) }
+
+            val sources = listOfNotNull(android.await(), openMeteo.await(), bigData.await(), nominatim.await())
+            if (sources.isEmpty()) return@coroutineScope null
+            mergeGeocodes(sources, lat, lon)
+        }
+
+    private fun mergeGeocodes(sources: List<GeoLocation>, lat: Double, lon: Double): GeoLocation {
+        val cities = sources.map { it.city.trim() }
+            .filter { it.isNotBlank() && !it.equals("Near you", ignoreCase = true) }
+        val city = cities.groupingBy { it.lowercase() }
+            .eachCount()
+            .maxByOrNull { it.value }
+            ?.let { top -> cities.first { it.equals(top.key, ignoreCase = true) } }
+            ?: cities.firstOrNull()
+            ?: "Near you"
+
+        val neighborhood = sources.mapNotNull { it.neighborhood?.trim()?.takeIf { n -> n.isNotBlank() } }
+            .firstOrNull { !it.equals(city, ignoreCase = true) }
+
+        val subArea = sources.mapNotNull { it.subArea?.trim()?.takeIf { s -> s.isNotBlank() } }
+            .firstOrNull {
+                !it.equals(city, ignoreCase = true) &&
+                    !it.equals(neighborhood, ignoreCase = true)
+            }
+
+        val country = sources.mapNotNull { it.country?.trim()?.takeIf { c -> c.isNotBlank() } }.firstOrNull()
+
+        return GeoLocation(
+            city = city,
+            neighborhood = neighborhood,
+            subArea = subArea,
+            country = country,
+            latitude = lat,
+            longitude = lon,
+        )
     }
 
     private suspend fun geocodeWithAndroid(lat: Double, lon: Double, freshGps: Boolean): GeoLocation? =
@@ -208,58 +281,113 @@ class LocationRepository(
                 @Suppress("DEPRECATION")
                 val geocoder = Geocoder(context, Locale.getDefault())
                 val address = geocoder.getFromLocation(lat, lon, 1)?.firstOrNull() ?: return@withContext null
-                addressToGeo(address, lat, lon, freshGps)
+                AddressParser.parse(address, freshGps)
             } catch (_: Exception) {
                 null
             }
         }
 
-    private fun addressToGeo(address: Address, lat: Double, lon: Double, freshGps: Boolean): GeoLocation {
-        val city = sequenceOf(
-            address.subLocality,
-            address.locality,
-            address.subAdminArea,
-            address.adminArea,
-        ).firstOrNull { !it.isNullOrBlank() && it.length >= 3 } ?: "Near you"
-
-        val subLocality = address.subLocality?.takeIf {
-            !it.isNullOrBlank() && !it.equals(city, ignoreCase = true)
-        }
-        val neighborhood = when {
-            subLocality != null && looksLikeNeighborhood(subLocality, city) -> subLocality
-            freshGps -> address.thoroughfare?.takeIf { !it.equals(city, ignoreCase = true) }
-            else -> sequenceOf(
-                address.featureName?.takeIf { !it.equals(city, ignoreCase = true) },
-                address.thoroughfare,
-            ).firstOrNull { !it.isNullOrBlank() && !it.equals(city, ignoreCase = true) }
-        }
-        val country = address.countryName
-        return GeoLocation(city, neighborhood, country, lat, lon)
-    }
-
-    private fun looksLikeNeighborhood(name: String, city: String): Boolean {
-        if (name.equals(city, ignoreCase = true)) return false
-        if (name.length < 3) return false
-        return true
-    }
-
-    private suspend fun fetchOpenMeteoReverse(lat: Double, lon: Double, freshGps: Boolean): GeoLocation? {
-        return runCatching {
+    private suspend fun fetchOpenMeteoReverse(lat: Double, lon: Double): GeoLocation? =
+        runCatching {
             val response = httpClient.get(
-                "https://geocoding-api.open-meteo.com/v1/reverse?latitude=$lat&longitude=$lon&language=en&count=1",
+                "https://geocoding-api.open-meteo.com/v1/reverse" +
+                    "?latitude=$lat&longitude=$lon&language=en",
             ).body<String>()
             val data = json.decodeFromString<OpenMeteoReverseResponse>(response)
-            val result = data.results?.firstOrNull() ?: return null
-            val city = result.name ?: return null
+            val city = sequenceOf(
+                data.name,
+                data.admin1,
+            ).firstOrNull { !it.isNullOrBlank() } ?: return null
             GeoLocation(
                 city = city,
-                neighborhood = null,
-                country = result.country,
+                neighborhood = data.name?.takeIf {
+                    !it.equals(city, ignoreCase = true) &&
+                        data.admin1 != null &&
+                        !it.equals(data.admin1, ignoreCase = true)
+                },
+                country = data.country,
                 latitude = lat,
                 longitude = lon,
             )
         }.getOrNull()
-    }
+
+    private suspend fun fetchBigDataCloudReverse(lat: Double, lon: Double): GeoLocation? =
+        runCatching {
+            val response = httpClient.get(
+                "https://api.bigdatacloud.net/data/reverse-geocode-client" +
+                    "?latitude=$lat&longitude=$lon&localityLanguage=en",
+            ).body<String>()
+            val data = json.decodeFromString<BigDataCloudReverseResponse>(response)
+            val city = data.city?.takeIf { it.isNotBlank() } ?: return null
+            val neighborhood = sequenceOf(
+                data.locality,
+                data.localityInfo?.administrative
+                    ?.sortedByDescending { it.order ?: 0 }
+                    ?.firstOrNull { admin ->
+                        admin.name.isNotBlank() &&
+                            !admin.name.equals(city, ignoreCase = true) &&
+                            (admin.adminLevel ?: 0) >= 6
+                    }?.name,
+            ).firstOrNull { !it.isNullOrBlank() && !it.equals(city, ignoreCase = true) }
+
+            GeoLocation(
+                city = city,
+                neighborhood = neighborhood,
+                country = data.countryName,
+                latitude = lat,
+                longitude = lon,
+            )
+        }.getOrNull()
+
+    private suspend fun fetchNominatimReverse(lat: Double, lon: Double): GeoLocation? =
+        runCatching {
+            val response = httpClient.get(
+                "https://nominatim.openstreetmap.org/reverse" +
+                    "?lat=$lat&lon=$lon&format=json&addressdetails=1&zoom=14&accept-language=en",
+            ) {
+                header("User-Agent", "KosmosAlpha/1.0 Android weather")
+            }.body<String>()
+            val data = json.decodeFromString<NominatimReverseResponse>(response)
+            val address = data.address ?: return null
+            val city = sequenceOf(
+                address.city,
+                address.town,
+                address.municipality,
+                address.state_district,
+            ).firstOrNull { !it.isNullOrBlank() } ?: return null
+
+            val neighborhood = sequenceOf(
+                address.suburb,
+                address.village,
+                address.neighbourhood,
+                address.quarter,
+                address.city_district,
+            ).firstOrNull {
+                !it.isNullOrBlank() && !it.equals(city, ignoreCase = true)
+            } ?: address.county
+                ?.replace(Regex("(?i)\\s*mandal$"), "")
+                ?.trim()
+                ?.takeIf { it.isNotBlank() && !it.equals(city, ignoreCase = true) }
+
+            val subArea = sequenceOf(
+                address.neighbourhood,
+                address.residential,
+                address.road,
+            ).firstOrNull {
+                !it.isNullOrBlank() &&
+                    !it.equals(city, ignoreCase = true) &&
+                    !it.equals(neighborhood, ignoreCase = true)
+            }
+
+            GeoLocation(
+                city = city,
+                neighborhood = neighborhood,
+                subArea = subArea,
+                country = address.country,
+                latitude = lat,
+                longitude = lon,
+            )
+        }.getOrNull()
 
     private suspend fun fetchIpLocation(): GeoLocation? =
         fetchIpWhoLocation() ?: fetchIpApiLocation()
@@ -272,7 +400,7 @@ class LocationRepository(
             val city = data.city ?: return null
             val lat = data.latitude ?: return null
             val lon = data.longitude ?: return null
-            GeoLocation(city, null, data.country, lat, lon)
+            GeoLocation(city, neighborhood = null, country = data.country, latitude = lat, longitude = lon)
         }.getOrNull()
     }
 
@@ -283,9 +411,52 @@ class LocationRepository(
             val city = data.city ?: return null
             val lat = data.latitude ?: return null
             val lon = data.longitude ?: return null
-            GeoLocation(city, data.region, data.country_name, lat, lon)
+            GeoLocation(city, neighborhood = data.region, country = data.country_name, latitude = lat, longitude = lon)
         }.getOrNull()
     }
+
+    suspend fun searchPlaces(query: String, limit: Int = 6): List<GeocodeSearchResult> {
+        val trimmed = query.trim()
+        if (trimmed.length < 2) return emptyList()
+
+        val preset = presetCities
+            .filter { (label, _) ->
+                label.startsWith(trimmed, ignoreCase = true) ||
+                    (trimmed.length >= 4 && label.contains(trimmed, ignoreCase = true))
+            }
+            .take(limit)
+            .map { (label, geo) ->
+                GeocodeSearchResult(
+                    label = geo.neighborhood ?: geo.city,
+                    detail = listOfNotNull(geo.city, geo.country).joinToString(" · "),
+                    latitude = geo.latitude,
+                    longitude = geo.longitude,
+                )
+            }
+
+        val remote = runCatching { fetchOpenMeteoSearch(trimmed, limit) }.getOrDefault(emptyList())
+        return (remote + preset).distinctBy { "${it.latitude},${it.longitude}" }.take(limit)
+    }
+
+    private suspend fun fetchOpenMeteoSearch(query: String, limit: Int): List<GeocodeSearchResult> =
+        withContext(Dispatchers.IO) {
+            val encoded = java.net.URLEncoder.encode(query, Charsets.UTF_8.name())
+            val response = httpClient.get(
+                "https://geocoding-api.open-meteo.com/v1/search?name=$encoded&count=$limit&language=en&format=json",
+            ).body<String>()
+            val data = json.decodeFromString<OpenMeteoSearchResponse>(response)
+            data.results.orEmpty().mapNotNull { place ->
+                val lat = place.latitude ?: return@mapNotNull null
+                val lon = place.longitude ?: return@mapNotNull null
+                val name = place.name ?: return@mapNotNull null
+                GeocodeSearchResult(
+                    label = name,
+                    detail = listOfNotNull(place.admin1, place.country).joinToString(" · "),
+                    latitude = lat,
+                    longitude = lon,
+                )
+            }
+        }
 
     suspend fun geocodeCity(cityQuery: String): GeoLocation? {
         return withContext(Dispatchers.IO) {
@@ -294,12 +465,19 @@ class LocationRepository(
                 val geocoder = Geocoder(context, Locale.getDefault())
                 val addresses = geocoder.getFromLocationName(cityQuery, 1)
                 val address = addresses?.firstOrNull() ?: return@withContext null
-                addressToGeo(address, address.latitude, address.longitude, freshGps = false)
+                AddressParser.parse(address, freshGps = false)
             } catch (_: Exception) {
                 null
             }
         }
     }
+
+    @Serializable
+    private data class OpenMeteoReverseResponse(
+        val name: String? = null,
+        val admin1: String? = null,
+        val country: String? = null,
+    )
 
     @Serializable
     private data class IpApiResponse(
@@ -320,19 +498,74 @@ class LocationRepository(
     )
 
     @Serializable
-    private data class OpenMeteoReverseResponse(
-        val results: List<OpenMeteoPlace>? = null,
+    private data class BigDataCloudReverseResponse(
+        val city: String? = null,
+        val locality: String? = null,
+        val countryName: String? = null,
+        val localityInfo: BigDataCloudLocalityInfo? = null,
+    )
+
+    @Serializable
+    private data class BigDataCloudLocalityInfo(
+        val administrative: List<BigDataCloudAdmin>? = null,
+    )
+
+    @Serializable
+    private data class BigDataCloudAdmin(
+        val name: String,
+        val adminLevel: Int? = null,
+        val order: Int? = null,
+    )
+
+    @Serializable
+    private data class NominatimReverseResponse(
+        val address: NominatimAddress? = null,
+    )
+
+    @Serializable
+    private data class NominatimAddress(
+        val suburb: String? = null,
+        val village: String? = null,
+        val neighbourhood: String? = null,
+        val quarter: String? = null,
+        val city_district: String? = null,
+        val city: String? = null,
+        val town: String? = null,
+        val municipality: String? = null,
+        val state_district: String? = null,
+        val county: String? = null,
+        val residential: String? = null,
+        val road: String? = null,
+        val country: String? = null,
+    )
+
+    @Serializable
+    private data class OpenMeteoSearchResponse(
+        val results: List<OpenMeteoSearchPlace>? = null,
     ) {
         @Serializable
-        data class OpenMeteoPlace(
+        data class OpenMeteoSearchPlace(
             val name: String? = null,
+            val latitude: Double? = null,
+            val longitude: Double? = null,
             val admin1: String? = null,
             val country: String? = null,
         )
     }
 
     companion object {
-        val DEFAULT_LOCATION = GeoLocation("Hyderabad", null, "India", 17.3850, 78.4867)
+        private const val MAX_CACHED_FIX_AGE_MS = 24 * 60 * 60_000L
+        private const val MAX_CACHED_FIX_ACCURACY_M = 500f
+        private const val BALANCED_FIX_TIMEOUT_MS = 5_000L
+        private const val HIGH_ACCURACY_BURST_MS = 8_000L
+
+        val DEFAULT_LOCATION = GeoLocation(
+            city = "Hyderabad",
+            neighborhood = null,
+            country = "India",
+            latitude = 17.3850,
+            longitude = 78.4867,
+        )
 
         fun isDefaultCoords(lat: Double, lon: Double): Boolean {
             val d = DEFAULT_LOCATION
@@ -354,17 +587,22 @@ class LocationRepository(
         }
 
         val presetCities = listOf(
-            "Hyderabad, India" to GeoLocation("Hyderabad", "Gachibowli", "India", 17.3850, 78.4867),
-            "Bengaluru, India" to GeoLocation("Bengaluru", "Indiranagar", "India", 12.9716, 77.5946),
-            "Mumbai, India" to GeoLocation("Mumbai", "Bandra", "India", 19.0760, 72.8777),
-            "Delhi, India" to GeoLocation("Delhi", "Connaught Place", "India", 28.6139, 77.2090),
-            "Chennai, India" to GeoLocation("Chennai", "T Nagar", "India", 13.0827, 80.2707),
-            "Visakhapatnam, India" to GeoLocation("Visakhapatnam", "RK Beach", "India", 17.6868, 83.2185),
-            "Bolangir, India" to GeoLocation("Bolangir", null, "India", 20.7075, 83.4848),
-            "Balangir, India" to GeoLocation("Balangir", null, "India", 20.7075, 83.4848),
-            "London, UK" to GeoLocation("London", "Westminster", "United Kingdom", 51.5074, -0.1278),
-            "New York, USA" to GeoLocation("New York", "Manhattan", "United States", 40.7128, -74.0060),
-            "Tokyo, Japan" to GeoLocation("Tokyo", "Shibuya", "Japan", 35.6762, 139.6503),
+            "Hyderabad, India" to GeoLocation("Hyderabad", "Gachibowli", country = "India", latitude = 17.3850, longitude = 78.4867),
+            "Biramguda, Hyderabad" to GeoLocation("Hyderabad", "Biramguda", country = "India", latitude = 17.3120, longitude = 78.5340),
+            "Bengaluru, India" to GeoLocation("Bengaluru", "Indiranagar", country = "India", latitude = 12.9716, longitude = 77.5946),
+            "Mumbai, India" to GeoLocation("Mumbai", "Bandra", country = "India", latitude = 19.0760, longitude = 72.8777),
+            "Delhi, India" to GeoLocation("Delhi", "Connaught Place", country = "India", latitude = 28.6139, longitude = 77.2090),
+            "Chennai, India" to GeoLocation("Chennai", "T Nagar", country = "India", latitude = 13.0827, longitude = 80.2707),
+            "Pune, India" to GeoLocation("Pune", "Koregaon Park", country = "India", latitude = 18.5204, longitude = 73.8567),
+            "Kolkata, India" to GeoLocation("Kolkata", "Salt Lake", country = "India", latitude = 22.5726, longitude = 88.3639),
+            "Ahmedabad, India" to GeoLocation("Ahmedabad", "Satellite", country = "India", latitude = 23.0225, longitude = 72.5714),
+            "Visakhapatnam, India" to GeoLocation("Visakhapatnam", "RK Beach", country = "India", latitude = 17.6868, longitude = 83.2185),
+            "Bolangir, India" to GeoLocation("Bolangir", country = "India", latitude = 20.7075, longitude = 83.4848),
+            "Balangir, India" to GeoLocation("Balangir", country = "India", latitude = 20.7075, longitude = 83.4848),
+            "London, UK" to GeoLocation("London", "Westminster", country = "United Kingdom", latitude = 51.5074, longitude = -0.1278),
+            "New York, USA" to GeoLocation("New York", "Manhattan", country = "United States", latitude = 40.7128, longitude = -74.0060),
+            "Sydney, Australia" to GeoLocation("Sydney", "CBD", country = "Australia", latitude = -33.8688, longitude = 151.2093),
+            "Tokyo, Japan" to GeoLocation("Tokyo", "Shibuya", country = "Japan", latitude = 35.6762, longitude = 139.6503),
         )
     }
 }

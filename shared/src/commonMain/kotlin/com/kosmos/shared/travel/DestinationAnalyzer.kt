@@ -10,6 +10,7 @@ object DestinationAnalyzer {
         destination: Destination,
         weather: DestinationWeather,
         targetDayOffset: Int = 0,
+        tripPurposes: Set<String> = setOf("any"),
     ): DestinationOutlook {
         val daily = weather.daily
         val targetDay = daily.getOrNull(targetDayOffset.coerceIn(0, daily.lastIndex.coerceAtLeast(0)))
@@ -77,6 +78,19 @@ object DestinationAnalyzer {
             score += 12
         }
 
+        if ("pilgrimage" in tripPurposes) {
+            val targetLow = targetDay?.low ?: weather.temp
+            if (targetRain < 30) {
+                parts.add("dry enough for temple visits")
+                score += 10
+            }
+            if (targetTemp in 22.0..34.0 && targetLow >= 18.0) {
+                parts.add("comfortable heat for long walks")
+                score += 8
+            }
+            if (targetRain > 60) score -= 12
+        }
+
         val bestDay = findBestDay(homeTemp, daily)
         val firstDayLabel = daily.firstOrNull()?.dateLabel
         if (bestDay != null && bestDay.dateLabel != firstDayLabel) {
@@ -115,6 +129,6 @@ object DestinationAnalyzer {
             homeTemp >= 30 -> "cooler hills, beaches, and more"
             else -> "getaways near you"
         }
-        return "It's ${homeTemp.toInt()}° where you are — planning for $whenLabel · $vibeHint."
+        return "It's ${homeTemp.toInt()}° where you are — $whenLabel · ${filters.tripDays}-day trip · $vibeHint."
     }
 }

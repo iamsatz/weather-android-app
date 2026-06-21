@@ -7,12 +7,15 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.kosmos.shared.i18n.AppLocale
 import com.kosmos.shared.mode.CommuteMode
 import com.kosmos.shared.mode.UserMode
+import com.kosmos.android.notification.NotificationEntry
+import com.kosmos.android.notification.ScheduledReminder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -31,6 +34,12 @@ class PreferencesRepository(private val context: Context) {
     val disabledVerdictIds: Flow<Set<String>> = context.dataStore.data.map { it[KEY_DISABLED_VERDICTS] ?: emptySet() }
     val appLocale: Flow<String> = context.dataStore.data.map { it[KEY_LOCALE] ?: AppLocale.EN.code }
     val userMode: Flow<String> = context.dataStore.data.map { it[KEY_USER_MODE] ?: UserMode.DEFAULT.id }
+    val activeModes: Flow<Set<String>> = context.dataStore.data.map { prefs ->
+        resolveActiveModeOrder(prefs).toSet()
+    }
+    val activeModeOrder: Flow<List<String>> = context.dataStore.data.map { prefs ->
+        resolveActiveModeOrder(prefs)
+    }
     val commuteModes: Flow<Set<String>> = context.dataStore.data.map {
         it[KEY_COMMUTE] ?: setOf("bike")
     }
@@ -65,11 +74,100 @@ class PreferencesRepository(private val context: Context) {
         AppLocale.fromCode(context.dataStore.data.first()[KEY_LOCALE] ?: AppLocale.EN.code)
 
     suspend fun setUserMode(modeId: String) {
-        context.dataStore.edit { it[KEY_USER_MODE] = modeId }
+        context.dataStore.edit { prefs ->
+            prefs[KEY_USER_MODE] = modeId
+            prefs[KEY_ACTIVE_MODES_ORDER] = modeId
+            prefs[KEY_ACTIVE_MODES] = setOf(modeId)
+        }
     }
 
     suspend fun getUserMode(): UserMode =
-        UserMode.fromId(context.dataStore.data.first()[KEY_USER_MODE] ?: UserMode.DEFAULT.id)
+        getActiveModeIds().firstOrNull()?.let { UserMode.fromId(it) }
+            ?: UserMode.fromId(context.dataStore.data.first()[KEY_USER_MODE] ?: UserMode.DEFAULT.id)
+
+    suspend fun getActiveModeIds(): List<String> {
+        ensureActiveModesMigrated()
+        return resolveActiveModeOrder(context.dataStore.data.first())
+    }
+
+    suspend fun getActiveModes(): List<UserMode> =
+        getActiveModeIds().map { UserMode.fromId(it) }
+
+    suspend fun toggleActiveMode(modeId: String): Boolean {
+        if (!UserMode.isActivatable(modeId)) return false
+        val mode = UserMode.fromId(modeId)
+        ensureActiveModesMigrated()
+        context.dataStore.edit { prefs ->
+            val order = resolveActiveModeOrder(prefs).toMutableList()
+            when {
+                mode.isTakeoverMode -> {
+                    order.clear()
+                    order.add(modeId)
+                }
+                modeId in order -> {
+                    order.remove(modeId)
+                    if (order.isEmpty()) order.add(UserMode.DEFAULT.id)
+                }
+                modeId == UserMode.DEFAULT.id -> {
+                    order.clear()
+                    order.add(UserMode.DEFAULT.id)
+                }
+                else -> {
+                    order.removeAll { UserMode.fromId(it).isTakeoverMode }
+                    order.remove(UserMode.DEFAULT.id)
+                    order.add(modeId)
+                    trimLensCap(order)
+                }
+            }
+            persistActiveModes(prefs, order)
+        }
+        return true
+    }
+
+    suspend fun activateTakeoverMode(modeId: String) {
+        if (!UserMode.isActivatable(modeId)) return
+        ensureActiveModesMigrated()
+        context.dataStore.edit { prefs ->
+            persistActiveModes(prefs, listOf(modeId))
+        }
+    }
+
+    private suspend fun ensureActiveModesMigrated() {
+        context.dataStore.edit { prefs ->
+            if (prefs[KEY_ACTIVE_MODES_ORDER] != null) return@edit
+            val legacy = prefs[KEY_USER_MODE] ?: UserMode.DEFAULT.id
+            persistActiveModes(prefs, listOf(legacy))
+        }
+    }
+
+    private fun resolveActiveModeOrder(prefs: Preferences): List<String> {
+        val order = prefs[KEY_ACTIVE_MODES_ORDER]
+            ?.split(",")
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() && UserMode.isActivatable(it) }
+            ?.distinct()
+        if (!order.isNullOrEmpty()) return order
+        val legacy = prefs[KEY_USER_MODE] ?: UserMode.DEFAULT.id
+        return listOf(legacy)
+    }
+
+    private fun trimLensCap(order: MutableList<String>) {
+        val lenses = order.filter { id ->
+            val mode = UserMode.fromId(id)
+            mode.isStackableLens && mode != UserMode.DEFAULT
+        }
+        if (lenses.size <= MAX_ACTIVE_LENSES) return
+        val dropCount = lenses.size - MAX_ACTIVE_LENSES
+        lenses.take(dropCount).forEach { order.remove(it) }
+    }
+
+    private fun persistActiveModes(prefs: androidx.datastore.preferences.core.MutablePreferences, order: List<String>) {
+        val cleaned = order.filter { UserMode.isActivatable(it) }.distinct()
+        val finalOrder = cleaned.ifEmpty { listOf(UserMode.DEFAULT.id) }
+        prefs[KEY_ACTIVE_MODES_ORDER] = finalOrder.joinToString(",")
+        prefs[KEY_ACTIVE_MODES] = finalOrder.toSet()
+        prefs[KEY_USER_MODE] = finalOrder.first()
+    }
 
     suspend fun toggleCommute(commuteId: String) {
         context.dataStore.edit { prefs ->
@@ -116,7 +214,14 @@ class PreferencesRepository(private val context: Context) {
             val current = prefs[KEY_ADDED_MODES]?.toMutableSet() ?: mutableSetOf()
             current.remove(modeId)
             prefs[KEY_ADDED_MODES] = current
-            if (prefs[KEY_USER_MODE] == modeId) prefs[KEY_USER_MODE] = UserMode.DEFAULT.id
+            val order = resolveActiveModeOrder(prefs).toMutableList()
+            if (modeId in order) {
+                order.remove(modeId)
+                if (order.isEmpty()) order.add(UserMode.DEFAULT.id)
+                persistActiveModes(prefs, order)
+            } else if (prefs[KEY_USER_MODE] == modeId) {
+                prefs[KEY_USER_MODE] = UserMode.DEFAULT.id
+            }
         }
     }
 
@@ -153,6 +258,87 @@ class PreferencesRepository(private val context: Context) {
             current.remove(verdictId)
             prefs[KEY_REMINDER_IDS] = current
         }
+        removeScheduledReminder(verdictId)
+    }
+
+    suspend fun getScheduledReminders(): List<ScheduledReminder> {
+        val raw = context.dataStore.data.first()[KEY_SCHEDULED_REMINDERS] ?: return emptyList()
+        return runCatching {
+            reminderJson.decodeFromString<List<ScheduledReminder>>(raw)
+        }.getOrDefault(emptyList()).filter { it.fireTimeMs > System.currentTimeMillis() }
+    }
+
+    suspend fun upsertScheduledReminder(reminder: ScheduledReminder) {
+        context.dataStore.edit { prefs ->
+            val current = runCatching {
+                reminderJson.decodeFromString<List<ScheduledReminder>>(
+                    prefs[KEY_SCHEDULED_REMINDERS] ?: "[]",
+                )
+            }.getOrDefault(emptyList()).filter { it.verdictId != reminder.verdictId }
+            val updated = (current + reminder).sortedBy { it.fireTimeMs }.takeLast(10)
+            prefs[KEY_SCHEDULED_REMINDERS] = reminderJson.encodeToString(updated)
+        }
+    }
+
+    suspend fun removeScheduledReminder(verdictId: String) {
+        context.dataStore.edit { prefs ->
+            val current = runCatching {
+                reminderJson.decodeFromString<List<ScheduledReminder>>(
+                    prefs[KEY_SCHEDULED_REMINDERS] ?: "[]",
+                )
+            }.getOrDefault(emptyList()).filter { it.verdictId != verdictId }
+            prefs[KEY_SCHEDULED_REMINDERS] = reminderJson.encodeToString(current)
+        }
+    }
+
+    suspend fun isSensitivityAsthmaEnabled(): Boolean =
+        context.dataStore.data.first()[KEY_SENSITIVITY_ASTHMA] ?: false
+
+    suspend fun isSensitivityKidsEnabled(): Boolean =
+        context.dataStore.data.first()[KEY_SENSITIVITY_KIDS] ?: false
+
+    suspend fun isSensitivityPregnancyEnabled(): Boolean =
+        context.dataStore.data.first()[KEY_SENSITIVITY_PREGNANCY] ?: false
+
+    suspend fun isSensitivityNightSafetyEnabled(): Boolean =
+        context.dataStore.data.first()[KEY_SENSITIVITY_NIGHT_SAFETY] ?: false
+
+    suspend fun isSensitivityWomanEnabled(): Boolean =
+        context.dataStore.data.first()[KEY_SENSITIVITY_WOMAN] ?: false
+
+    suspend fun setSensitivityWoman(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_SENSITIVITY_WOMAN] = enabled }
+    }
+
+    suspend fun setSensitivityAsthma(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_SENSITIVITY_ASTHMA] = enabled }
+    }
+
+    suspend fun setSensitivityKids(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_SENSITIVITY_KIDS] = enabled }
+    }
+
+    suspend fun setSensitivityPregnancy(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_SENSITIVITY_PREGNANCY] = enabled }
+    }
+
+    suspend fun setSensitivityNightSafety(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_SENSITIVITY_NIGHT_SAFETY] = enabled }
+    }
+
+    suspend fun getTripWizardDraft(): TripWizardDraft? {
+        val raw = context.dataStore.data.first()[KEY_TRIP_WIZARD_DRAFT] ?: return null
+        return runCatching { reminderJson.decodeFromString<TripWizardDraft>(raw) }.getOrNull()
+    }
+
+    suspend fun saveTripWizardDraft(draft: TripWizardDraft) {
+        context.dataStore.edit {
+            it[KEY_TRIP_WIZARD_DRAFT] = reminderJson.encodeToString(draft)
+        }
+    }
+
+    suspend fun clearTripWizardDraft() {
+        context.dataStore.edit { it.remove(KEY_TRIP_WIZARD_DRAFT) }
     }
 
     suspend fun toggleVerdict(baseId: String) {
@@ -208,6 +394,66 @@ class PreferencesRepository(private val context: Context) {
         )
     }
 
+    suspend fun saveEmployeeProfile(profile: com.kosmos.shared.mode.EmployeeProfile) {
+        context.dataStore.edit { prefs ->
+            profile.homeLabel?.let { prefs[KEY_EMP_HOME_LABEL] = it }
+            profile.homeLat?.let { prefs[KEY_EMP_HOME_LAT] = it }
+            profile.homeLon?.let { prefs[KEY_EMP_HOME_LON] = it }
+            profile.workLabel?.let { prefs[KEY_EMP_WORK_LABEL] = it }
+            profile.workLat?.let { prefs[KEY_EMP_WORK_LAT] = it }
+            profile.workLon?.let { prefs[KEY_EMP_WORK_LON] = it }
+        }
+    }
+
+    suspend fun getEmployeeProfile(): com.kosmos.shared.mode.EmployeeProfile {
+        val prefs = context.dataStore.data.first()
+        return com.kosmos.shared.mode.EmployeeProfile(
+            homeLabel = prefs[KEY_EMP_HOME_LABEL],
+            homeLat = prefs[KEY_EMP_HOME_LAT],
+            homeLon = prefs[KEY_EMP_HOME_LON],
+            workLabel = prefs[KEY_EMP_WORK_LABEL],
+            workLat = prefs[KEY_EMP_WORK_LAT],
+            workLon = prefs[KEY_EMP_WORK_LON],
+        )
+    }
+
+    suspend fun appendNotification(entry: NotificationEntry) {
+        val safeTitle = entry.title.replace("|", " ").replace("\n", " ")
+        val safeBody = entry.body.replace("|", " ").replace("\n", " ")
+        val line = "${entry.timestampMs}|${entry.type}|$safeTitle|$safeBody"
+        context.dataStore.edit { prefs ->
+            val current = prefs[KEY_NOTIFICATIONS]?.split("\n")?.toMutableList() ?: mutableListOf()
+            current.add(0, line)
+            prefs[KEY_NOTIFICATIONS] = current.take(40).joinToString("\n")
+        }
+    }
+
+    suspend fun getNotifications(): List<NotificationEntry> {
+        val raw = context.dataStore.data.first()[KEY_NOTIFICATIONS] ?: return emptyList()
+        return raw.split("\n").mapNotNull { line ->
+            val parts = line.split("|", limit = 4)
+            if (parts.size < 4) return@mapNotNull null
+            NotificationEntry(
+                id = "${parts[1]}_${parts[0]}",
+                timestampMs = parts[0].toLongOrNull() ?: return@mapNotNull null,
+                type = parts[1],
+                title = parts[2],
+                body = parts[3],
+            )
+        }
+    }
+
+    suspend fun getNotificationsUnreadCount(): Int {
+        val lastSeen = context.dataStore.data.first()[KEY_NOTIFICATIONS_SEEN_AT] ?: 0L
+        return getNotifications().count { it.timestampMs > lastSeen }
+    }
+
+    suspend fun markNotificationsSeen() {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_NOTIFICATIONS_SEEN_AT] = System.currentTimeMillis()
+        }
+    }
+
     suspend fun setWeeklyDigestEnabled(enabled: Boolean) {
         context.dataStore.edit { it[KEY_WEEKLY_DIGEST] = enabled }
     }
@@ -255,6 +501,11 @@ class PreferencesRepository(private val context: Context) {
                 prefs.remove(KEY_NEIGHBORHOOD)
             } else {
                 prefs[KEY_NEIGHBORHOOD] = geo.neighborhood
+            }
+            if (geo.subArea.isNullOrBlank()) {
+                prefs.remove(KEY_SUB_AREA)
+            } else {
+                prefs[KEY_SUB_AREA] = geo.subArea
             }
             if (geo.country.isNullOrBlank()) {
                 prefs.remove(KEY_COUNTRY)
@@ -341,6 +592,7 @@ class PreferencesRepository(private val context: Context) {
         return SavedLocation(
             city = city,
             neighborhood = prefs[KEY_NEIGHBORHOOD],
+            subArea = prefs[KEY_SUB_AREA],
             country = prefs[KEY_COUNTRY],
             latitude = lat,
             longitude = lon,
@@ -426,6 +678,7 @@ class PreferencesRepository(private val context: Context) {
     companion object {
         const val ALPHA_ALL_FREE = true
         const val MAX_ADDED_MODES = 5
+        const val MAX_ACTIVE_LENSES = 2
         const val FREE_REMINDERS_DAILY = 2
         private val KEY_CELSIUS = booleanPreferencesKey("use_celsius")
         private val KEY_24HOUR = booleanPreferencesKey("use_24hour")
@@ -433,6 +686,8 @@ class PreferencesRepository(private val context: Context) {
         private val KEY_SHOW_NUMBERS = booleanPreferencesKey("show_numbers")
         private val KEY_LOCALE = stringPreferencesKey("app_locale")
         private val KEY_USER_MODE = stringPreferencesKey("user_mode")
+        private val KEY_ACTIVE_MODES = stringSetPreferencesKey("active_modes")
+        private val KEY_ACTIVE_MODES_ORDER = stringPreferencesKey("active_modes_order")
         private val KEY_COMMUTE = stringSetPreferencesKey("commute_modes")
         private val KEY_KOSMOS_PLUS = booleanPreferencesKey("kosmos_plus")
         private val KEY_ADDED_MODES = stringSetPreferencesKey("added_modes")
@@ -483,6 +738,8 @@ class PreferencesRepository(private val context: Context) {
         )
 
         val employeeVerdictToggles = listOf(
+            "workAir" to "Office air quality",
+            "workRainEvening" to "Rain at work",
             "commuteOut" to "Morning commute",
             "deskSun" to "Desk sun window",
             "lunchWalk" to "Lunch walk",
@@ -525,6 +782,7 @@ class PreferencesRepository(private val context: Context) {
         private val KEY_DISABLED_VERDICTS = stringSetPreferencesKey("disabled_verdicts")
         private val KEY_CITY = stringPreferencesKey("city")
         private val KEY_NEIGHBORHOOD = stringPreferencesKey("neighborhood")
+        private val KEY_SUB_AREA = stringPreferencesKey("sub_area")
         private val KEY_COUNTRY = stringPreferencesKey("country")
         private val KEY_HOME_CITY = stringPreferencesKey("home_city")
         private val KEY_HOME_NEIGHBORHOOD = stringPreferencesKey("home_neighborhood")
@@ -545,11 +803,27 @@ class PreferencesRepository(private val context: Context) {
         private val KEY_FARMER_PLOT_LON = doublePreferencesKey("farmer_plot_lon")
         private val KEY_FARMER_PLOT_CITY = stringPreferencesKey("farmer_plot_city")
         private val KEY_FARMER_LANG = stringPreferencesKey("farmer_lang")
+        private val KEY_EMP_HOME_LABEL = stringPreferencesKey("emp_home_label")
+        private val KEY_EMP_HOME_LAT = doublePreferencesKey("emp_home_lat")
+        private val KEY_EMP_HOME_LON = doublePreferencesKey("emp_home_lon")
+        private val KEY_EMP_WORK_LABEL = stringPreferencesKey("emp_work_label")
+        private val KEY_EMP_WORK_LAT = doublePreferencesKey("emp_work_lat")
+        private val KEY_EMP_WORK_LON = doublePreferencesKey("emp_work_lon")
+        private val KEY_NOTIFICATIONS = stringPreferencesKey("notification_log")
+        private val KEY_NOTIFICATIONS_SEEN_AT = longPreferencesKey("notifications_seen_at")
         private val KEY_WEEKLY_DIGEST = booleanPreferencesKey("weekly_digest")
         private val KEY_DIARY_ENTRIES = stringPreferencesKey("weather_diary_entries")
         private val KEY_WEATHER_CACHE = stringPreferencesKey("weather_cache_json")
+        private val KEY_SCHEDULED_REMINDERS = stringPreferencesKey("scheduled_reminders")
+        private val KEY_SENSITIVITY_ASTHMA = booleanPreferencesKey("sensitivity_asthma")
+        private val KEY_SENSITIVITY_KIDS = booleanPreferencesKey("sensitivity_kids")
+        private val KEY_SENSITIVITY_PREGNANCY = booleanPreferencesKey("sensitivity_pregnancy")
+        private val KEY_SENSITIVITY_NIGHT_SAFETY = booleanPreferencesKey("sensitivity_night_safety")
+        private val KEY_SENSITIVITY_WOMAN = booleanPreferencesKey("sensitivity_woman")
+        private val KEY_TRIP_WIZARD_DRAFT = stringPreferencesKey("trip_wizard_draft")
 
         private val weatherCacheJson = Json { ignoreUnknownKeys = true }
+        private val reminderJson = Json { ignoreUnknownKeys = true }
 
         const val FREE_CHAT_DAILY = 5
 
@@ -561,6 +835,7 @@ class PreferencesRepository(private val context: Context) {
 data class SavedLocation(
     val city: String,
     val neighborhood: String?,
+    val subArea: String? = null,
     val country: String?,
     val latitude: Double,
     val longitude: Double,

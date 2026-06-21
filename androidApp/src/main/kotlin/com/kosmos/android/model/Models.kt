@@ -59,7 +59,11 @@ data class WeatherAlert(
 
 data class WeatherSnapshot(
     val city: String,
+    val country: String = "",
     val locationLine: String,
+    val locationHeadline: String = "",
+    val locationDetail: String = "",
+    val appBarTitle: String = "",
     val dateLabel: String,
     val temp: Int,
     val tempCelsius: Double,
@@ -82,6 +86,8 @@ data class WeatherSnapshot(
     val nowcast: String,
     val nowcastIsWet: Boolean,
     val updatedMinutesAgo: Int,
+    val lastUpdatedAtEpochMs: Long = 0L,
+    val refreshLabel: String = "",
     val hasLiveLocation: Boolean = false,
     val locationSourceLabel: String = "",
     val userModeId: String = "default",

@@ -28,10 +28,12 @@ import com.kosmos.android.prototype.PrototypeData
 import com.kosmos.shared.i18n.AppLocale
 import com.kosmos.shared.i18n.LocaleStrings
 import com.kosmos.shared.mode.ModeCatalog
+import com.kosmos.shared.mode.ModeAvailability
 import com.kosmos.shared.mode.UserMode
 import com.kosmos.shared.travel.DestinationResult
 import com.kosmos.android.util.VerdictShareHelper
 import com.kosmos.shared.farmer.FarmerProfile
+import com.kosmos.shared.mode.EmployeeProfile
 import com.kosmos.shared.travel.TravelFilters
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -40,6 +42,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -77,6 +81,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val userMode: StateFlow<UserMode> = prefsRepo.userMode
         .mapToMode()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserMode.DEFAULT)
+
+    val activeModeIds: StateFlow<List<String>> = prefsRepo.activeModeOrder
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), listOf(UserMode.DEFAULT.id))
 
     val commuteModes: StateFlow<Set<String>> = prefsRepo.commuteModes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
@@ -125,8 +132,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _hasLocationPermission = MutableStateFlow(false)
     val hasLocationPermission: StateFlow<Boolean> = _hasLocationPermission.asStateFlow()
 
-    private val _isLocating = MutableStateFlow(false)
-    val isLocating: StateFlow<Boolean> = _isLocating.asStateFlow()
+    val isLocating: StateFlow<Boolean> = weatherRepo.isLocating
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     private val _locationMessage = MutableStateFlow<String?>(null)
     val locationMessage: StateFlow<String?> = _locationMessage.asStateFlow()
@@ -138,6 +145,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _travelResults = MutableStateFlow<List<DestinationResult>>(emptyList())
     val travelResults: StateFlow<List<DestinationResult>> = _travelResults.asStateFlow()
+
+    private val _showTripResults = MutableStateFlow(false)
+    val showTripResults: StateFlow<Boolean> = _showTripResults.asStateFlow()
 
     private val _travelLoading = MutableStateFlow(false)
     val travelLoading: StateFlow<Boolean> = _travelLoading.asStateFlow()
@@ -166,8 +176,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _farmerProfile = MutableStateFlow(FarmerProfile())
     val farmerProfile: StateFlow<FarmerProfile> = _farmerProfile.asStateFlow()
 
-    private val _radarUrl = MutableStateFlow<String?>(null)
-    val radarUrl: StateFlow<String?> = _radarUrl.asStateFlow()
+    private val _employeeProfile = MutableStateFlow(EmployeeProfile())
+    val employeeProfile: StateFlow<EmployeeProfile> = _employeeProfile.asStateFlow()
+
+    private val _pendingEmployeeSetup = MutableStateFlow(false)
+    val pendingEmployeeSetup: StateFlow<Boolean> = _pendingEmployeeSetup.asStateFlow()
+
+    private val _radarResult = MutableStateFlow<com.kosmos.android.data.RainViewerClient.RadarResult?>(null)
+    val radarResult: StateFlow<com.kosmos.android.data.RainViewerClient.RadarResult?> = _radarResult.asStateFlow()
 
     private val _radarLoading = MutableStateFlow(false)
     val radarLoading: StateFlow<Boolean> = _radarLoading.asStateFlow()
@@ -190,6 +206,42 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _verdictCategories = MutableStateFlow<List<com.kosmos.android.data.VerdictCategory>>(emptyList())
     val verdictCategories: StateFlow<List<com.kosmos.android.data.VerdictCategory>> = _verdictCategories.asStateFlow()
 
+    private val _notifications = MutableStateFlow<List<com.kosmos.android.notification.NotificationEntry>>(emptyList())
+    val notifications: StateFlow<List<com.kosmos.android.notification.NotificationEntry>> = _notifications.asStateFlow()
+
+    private val _scheduledReminders = MutableStateFlow<List<com.kosmos.android.notification.ScheduledReminder>>(emptyList())
+    val scheduledReminders: StateFlow<List<com.kosmos.android.notification.ScheduledReminder>> = _scheduledReminders.asStateFlow()
+
+    private val _placeSearchResults = MutableStateFlow<List<com.kosmos.android.data.GeocodeSearchResult>>(emptyList())
+    val placeSearchResults: StateFlow<List<com.kosmos.android.data.GeocodeSearchResult>> = _placeSearchResults.asStateFlow()
+
+    private val _homeSearchResults = MutableStateFlow<List<com.kosmos.android.data.GeocodeSearchResult>>(emptyList())
+    val homeSearchResults: StateFlow<List<com.kosmos.android.data.GeocodeSearchResult>> = _homeSearchResults.asStateFlow()
+
+    private var tripSearchJob: Job? = null
+    private var homeSearchJob: Job? = null
+
+    private val _tripWizardDraft = MutableStateFlow<com.kosmos.android.data.TripWizardDraft?>(null)
+    val tripWizardDraft: StateFlow<com.kosmos.android.data.TripWizardDraft?> = _tripWizardDraft.asStateFlow()
+
+    private val _sensitivityAsthma = MutableStateFlow(false)
+    val sensitivityAsthma: StateFlow<Boolean> = _sensitivityAsthma.asStateFlow()
+
+    private val _sensitivityKids = MutableStateFlow(false)
+    val sensitivityKids: StateFlow<Boolean> = _sensitivityKids.asStateFlow()
+
+    private val _sensitivityWoman = MutableStateFlow(false)
+    val sensitivityWoman: StateFlow<Boolean> = _sensitivityWoman.asStateFlow()
+
+    private val _sensitivityPregnancy = MutableStateFlow(false)
+    val sensitivityPregnancy: StateFlow<Boolean> = _sensitivityPregnancy.asStateFlow()
+
+    private val _sensitivityNightSafety = MutableStateFlow(false)
+    val sensitivityNightSafety: StateFlow<Boolean> = _sensitivityNightSafety.asStateFlow()
+
+    private val _notificationUnread = MutableStateFlow(0)
+    val notificationUnread: StateFlow<Int> = _notificationUnread.asStateFlow()
+
     private val rainViewer = com.kosmos.android.data.RainViewerClient(
         com.kosmos.shared.api.createHttpClient(),
     )
@@ -200,16 +252,146 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             plusRepo.refreshStatus()
             refreshEnabledVerdicts()
             _farmerProfile.value = prefsRepo.getFarmerProfile()
+            _employeeProfile.value = prefsRepo.getEmployeeProfile()
             _weeklyDigestEnabled.value = prefsRepo.isWeeklyDigestEnabled()
             _morningBriefEnabled.value = prefsRepo.isMorningBriefEnabled()
             _onboardingDone.value = prefsRepo.isOnboardingDone()
             _savedPlaces.value = prefsRepo.getSavedPlaces()
             refreshVerdictCategories()
             _diaryEntries.value = prefsRepo.getDiaryEntries()
+            loadNotifications()
+            _tripWizardDraft.value = prefsRepo.getTripWizardDraft()
+            _sensitivityAsthma.value = prefsRepo.isSensitivityAsthmaEnabled()
+            _sensitivityKids.value = prefsRepo.isSensitivityKidsEnabled()
+            _sensitivityWoman.value = prefsRepo.isSensitivityWomanEnabled()
+            _sensitivityPregnancy.value = prefsRepo.isSensitivityPregnancyEnabled()
+            _sensitivityNightSafety.value = prefsRepo.isSensitivityNightSafetyEnabled()
+            if (prefsRepo.getActiveModeIds().any { it != UserMode.DEFAULT.id }) {
+                prefsRepo.setUserMode(UserMode.DEFAULT.id)
+            }
         }
     }
 
+    fun loadNotifications() {
+        viewModelScope.launch {
+            _notifications.value = prefsRepo.getNotifications()
+            _notificationUnread.value = prefsRepo.getNotificationsUnreadCount()
+            _scheduledReminders.value = prefsRepo.getScheduledReminders()
+        }
+    }
+
+    fun cancelScheduledReminder(verdictId: String) {
+        viewModelScope.launch {
+            prefsRepo.removeReminder(verdictId)
+            ReminderScheduler.cancel(getApplication(), verdictId)
+            loadNotifications()
+        }
+    }
+
+    fun searchTripDestinations(query: String) {
+        tripSearchJob?.cancel()
+        if (query.trim().length < 2) {
+            _placeSearchResults.value = emptyList()
+            return
+        }
+        tripSearchJob = viewModelScope.launch {
+            delay(300)
+            _placeSearchResults.value = locationRepo.searchPlaces(query)
+        }
+    }
+
+    fun searchHomePlaces(query: String) {
+        homeSearchJob?.cancel()
+        if (query.trim().length < 2) {
+            _homeSearchResults.value = emptyList()
+            return
+        }
+        homeSearchJob = viewModelScope.launch {
+            delay(300)
+            _homeSearchResults.value = locationRepo.searchPlaces(query)
+        }
+    }
+
+    fun saveTripWizardDraft(draft: com.kosmos.android.data.TripWizardDraft) {
+        viewModelScope.launch {
+            prefsRepo.saveTripWizardDraft(draft)
+            _tripWizardDraft.value = draft
+        }
+    }
+
+    fun toggleSensitivityAsthma() {
+        viewModelScope.launch {
+            val next = !_sensitivityAsthma.value
+            prefsRepo.setSensitivityAsthma(next)
+            _sensitivityAsthma.value = next
+            weatherRepo.reEvaluateWithPreferences()
+        }
+    }
+
+    fun toggleSensitivityKids() {
+        viewModelScope.launch {
+            val next = !_sensitivityKids.value
+            prefsRepo.setSensitivityKids(next)
+            _sensitivityKids.value = next
+            weatherRepo.reEvaluateWithPreferences()
+        }
+    }
+
+    fun toggleSensitivityWoman() {
+        viewModelScope.launch {
+            val next = !_sensitivityWoman.value
+            prefsRepo.setSensitivityWoman(next)
+            _sensitivityWoman.value = next
+            weatherRepo.reEvaluateWithPreferences()
+        }
+    }
+
+    fun toggleSensitivityPregnancy() {
+        viewModelScope.launch {
+            val next = !_sensitivityPregnancy.value
+            prefsRepo.setSensitivityPregnancy(next)
+            _sensitivityPregnancy.value = next
+            weatherRepo.reEvaluateWithPreferences()
+        }
+    }
+
+    fun toggleSensitivityNightSafety() {
+        viewModelScope.launch {
+            val next = !_sensitivityNightSafety.value
+            prefsRepo.setSensitivityNightSafety(next)
+            _sensitivityNightSafety.value = next
+            weatherRepo.reEvaluateWithPreferences()
+        }
+    }
+
+    fun markNotificationsSeen() {
+        viewModelScope.launch {
+            prefsRepo.markNotificationsSeen()
+            _notificationUnread.value = 0
+        }
+    }
+
+    fun sendTestNotification() {
+        viewModelScope.launch {
+            val snap = currentSnapshot()
+            val body = snap.verdicts.take(2).joinToString(" · ") { it.title }.ifBlank {
+                "${snap.conditionLabel} · ${snap.temp}°"
+            }
+            com.kosmos.android.notification.NotificationLogger.log(
+                getApplication(),
+                title = "Kosmos · ${snap.appBarTitle.ifBlank { snap.city }}",
+                body = body,
+                type = "test",
+            )
+            loadNotifications()
+        }
+    }
+
+    private var hasBootstrapped = false
+
     fun bootstrap(hasLocationPermission: Boolean) {
+        if (hasBootstrapped) return
+        hasBootstrapped = true
         locationPermissionGranted = hasLocationPermission
         _hasLocationPermission.value = hasLocationPermission
         viewModelScope.launch {
@@ -230,9 +412,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             if (granted) {
                 prefsRepo.setUsingLiveGps(true)
-                refreshCurrentLocationInternal(showErrors = true)
+                if (!hasBootstrapped) {
+                    bootstrap(true)
+                } else {
+                    refreshCurrentLocationInternal(showErrors = true)
+                }
             } else {
-                refreshWeather()
+                if (!hasBootstrapped) {
+                    bootstrap(false)
+                } else {
+                    refreshWeather()
+                }
             }
         }
     }
@@ -256,7 +446,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             if (hasPermission && !wasGranted) {
                 prefsRepo.setUsingLiveGps(true)
-                refreshCurrentLocationInternal(showErrors = false)
+                if (!hasBootstrapped) {
+                    bootstrap(true)
+                } else {
+                    refreshCurrentLocationInternal(showErrors = false)
+                }
             }
         }
     }
@@ -276,24 +470,57 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         else -> PrototypeData.hyderabadSummerDay
     }
 
+    private fun currentSnapshotOrNull(): WeatherSnapshot? = weatherRepo.currentSnapshotOrNull()
+
     fun insightsSectionLabel(): String {
-        val mode = userMode.value
         val locale = appLocale.value
-        return LocaleStrings.ui(mode.insightsLabelKey, locale)
+        val modes = activeModeIds.value.map { UserMode.fromId(it) }
+        val lenses = modes.filter { it.isStackableLens && it != UserMode.DEFAULT }
+        return when {
+            lenses.size >= 2 -> lenses.joinToString(" + ") { modeShortInsightsLabel(it, locale) }
+            modes.size == 1 -> LocaleStrings.ui(modes.first().insightsLabelKey, locale)
+            else -> LocaleStrings.ui(UserMode.DEFAULT.insightsLabelKey, locale)
+        }
+    }
+
+    private fun modeShortInsightsLabel(mode: UserMode, locale: AppLocale): String = when (mode) {
+        UserMode.EMPLOYEE -> LocaleStrings.ui("insights_short_work", locale)
+        UserMode.FAMILY -> LocaleStrings.ui("insights_short_family", locale)
+        UserMode.PHOTOGRAPHER -> LocaleStrings.ui("insights_short_photo", locale)
+        UserMode.HOMEMAKER -> LocaleStrings.ui("insights_short_home", locale)
+        UserMode.DEFAULT -> LocaleStrings.ui("insights_short_default", locale)
+        UserMode.ELDER -> LocaleStrings.ui("insights_short_elder", locale)
+        UserMode.FARMER -> LocaleStrings.ui("insights_short_farmer", locale)
     }
 
     fun modeCards(): List<ModeCardData> {
         val locale = appLocale.value
-        return ModeCatalog.all.map { meta ->
-            ModeCardData(
-                id = meta.mode.id,
-                emoji = meta.emoji,
-                name = LocaleStrings.ui(meta.nameKey, locale),
-                description = LocaleStrings.ui(meta.descKey, locale),
-                phase = LocaleStrings.ui(meta.phaseKey, locale),
-                locked = false,
-            )
-        }
+        return catalogToCards(ModeCatalog.live, locale)
+    }
+
+    fun comingSoonModeCards(): List<ModeCardData> {
+        val locale = appLocale.value
+        return catalogToCards(ModeCatalog.comingSoon, locale)
+    }
+
+    private fun catalogToCards(
+        entries: List<com.kosmos.shared.mode.ModeCatalogEntry>,
+        locale: com.kosmos.shared.i18n.AppLocale,
+    ): List<ModeCardData> = entries.map { entry ->
+        ModeCardData(
+            id = entry.id,
+            emoji = entry.emoji,
+            name = LocaleStrings.ui(entry.nameKey, locale),
+            description = LocaleStrings.ui(entry.descKey, locale),
+            phase = if (entry.availability == ModeAvailability.COMING_SOON) {
+                LocaleStrings.ui("coming_soon", locale)
+            } else {
+                LocaleStrings.ui("phase_v1", locale)
+            },
+            locked = false,
+            isComingSoon = entry.availability == ModeAvailability.COMING_SOON,
+            plannedInsights = entry.insightKeys.map { LocaleStrings.ui(it, locale) },
+        )
     }
 
     fun toggleInsights() {
@@ -306,14 +533,35 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 .firstOrNull { it.first == cityLabel }?.second
                 ?: locationRepo.geocodeCity(cityLabel.substringBefore(",").trim())
             if (geo != null) {
-                val result = weatherRepo.refreshAt(geo, hasLiveLocation = false)
-                if (result.isFailure) {
-                    _locationMessage.value = result.exceptionOrNull()?.message ?: "Could not load that city"
-                }
+                loadWeatherAt(geo)
             } else {
                 _locationMessage.value = "Could not find that city"
             }
             _showCitySearch.value = false
+            _homeSearchResults.value = emptyList()
+        }
+    }
+
+    fun onPlaceSelected(result: com.kosmos.android.data.GeocodeSearchResult) {
+        viewModelScope.launch {
+            val country = result.detail.substringAfter(" · ", "").takeIf { it.isNotBlank() && it != result.detail }
+            val geo = GeoLocation(
+                city = result.label,
+                neighborhood = null,
+                country = country,
+                latitude = result.latitude,
+                longitude = result.longitude,
+            )
+            loadWeatherAt(geo)
+            _showCitySearch.value = false
+            _homeSearchResults.value = emptyList()
+        }
+    }
+
+    private suspend fun loadWeatherAt(geo: GeoLocation) {
+        val result = weatherRepo.refreshAt(geo, hasLiveLocation = false)
+        if (result.isFailure) {
+            _locationMessage.value = result.exceptionOrNull()?.message ?: "Could not load that city"
         }
     }
 
@@ -329,9 +577,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun refreshCurrentLocationInternal(showErrors: Boolean) {
-        _isLocating.value = true
         val result = weatherRepo.refreshCurrentLocation(locationPermissionGranted)
-        _isLocating.value = false
         if (result.isFailure && showErrors) {
             _locationMessage.value = result.exceptionOrNull()?.message ?: "Could not get current location"
         } else if (result.isSuccess) {
@@ -375,15 +621,83 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setUserMode(modeId: String) {
+        toggleActiveMode(modeId, forceActivate = true)
+    }
+
+    fun toggleActiveMode(modeId: String, forceActivate: Boolean = false) {
+        if (!UserMode.isActivatable(modeId)) return
         viewModelScope.launch {
-            prefsRepo.setUserMode(modeId)
+            if (forceActivate) {
+                prefsRepo.setUserMode(modeId)
+                if (modeId != UserMode.DEFAULT.id) prefsRepo.addMode(modeId)
+            } else {
+                prefsRepo.toggleActiveMode(modeId)
+            }
+            refreshEnabledVerdicts()
+            refreshVerdictCategories()
+            weatherRepo.refresh(locationPermissionGranted)
+            val active = prefsRepo.getActiveModeIds()
+            if (UserMode.EMPLOYEE.id in active && !prefsRepo.getEmployeeProfile().hasWork) {
+                _pendingEmployeeSetup.value = true
+            }
+        }
+    }
+
+    fun activateTakeoverMode(modeId: String) {
+        if (!UserMode.isActivatable(modeId)) return
+        viewModelScope.launch {
+            prefsRepo.activateTakeoverMode(modeId)
+            prefsRepo.addMode(modeId)
             refreshEnabledVerdicts()
             refreshVerdictCategories()
             weatherRepo.refresh(locationPermissionGranted)
         }
     }
 
+    fun clearPendingEmployeeSetup() {
+        _pendingEmployeeSetup.value = false
+    }
+
+    fun useCurrentLocationAsEmployeeHome() {
+        val snap = currentSnapshotOrNull() ?: return
+        _employeeProfile.value = _employeeProfile.value.copy(
+            homeLabel = snap.locationHeadline.ifBlank { snap.locationLine },
+            homeLat = snap.latitude,
+            homeLon = snap.longitude,
+        )
+    }
+
+    fun saveEmployeeProfile(profile: EmployeeProfile) {
+        viewModelScope.launch {
+            var updated = profile
+            profile.workLabel?.let { work ->
+                locationRepo.geocodeCity(work)?.let { geo ->
+                    updated = updated.copy(
+                        workLat = geo.latitude,
+                        workLon = geo.longitude,
+                        workLabel = geo.city,
+                    )
+                }
+            }
+            if (!updated.hasHome) {
+                val snap = currentSnapshotOrNull()
+                if (snap != null) {
+                    updated = updated.copy(
+                        homeLabel = snap.locationHeadline.ifBlank { snap.locationLine },
+                        homeLat = snap.latitude,
+                        homeLon = snap.longitude,
+                    )
+                }
+            }
+            prefsRepo.saveEmployeeProfile(updated)
+            _employeeProfile.value = updated
+            _pendingEmployeeSetup.value = false
+            weatherRepo.refresh(locationPermissionGranted)
+        }
+    }
+
     fun addMode(modeId: String) {
+        if (!UserMode.isActivatable(modeId)) return
         viewModelScope.launch {
             val ok = prefsRepo.addMode(modeId)
             if (!ok) {
@@ -394,7 +708,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun removeMode(modeId: String) {
         viewModelScope.launch {
-            val wasActive = prefsRepo.getUserMode().id == modeId
+            val wasActive = modeId in prefsRepo.getActiveModeIds()
             prefsRepo.removeMode(modeId)
             if (wasActive) {
                 refreshEnabledVerdicts()
@@ -428,6 +742,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             if (!allowed) {
                 ReminderScheduler.cancel(getApplication(), verdict.id)
                 _locationMessage.value = LocaleStrings.ui("reminder_capped", appLocale.value)
+                return@launch
+            }
+            ReminderScheduler.fireTimeMs(window.startHour)?.let { fireTime ->
+                prefsRepo.upsertScheduledReminder(
+                    com.kosmos.android.notification.ScheduledReminder(
+                        verdictId = verdict.id,
+                        emoji = verdict.emoji,
+                        title = verdict.title,
+                        detail = verdict.detail,
+                        fireTimeMs = fireTime,
+                    ),
+                )
+                loadNotifications()
             }
         }
     }
@@ -448,8 +775,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _insightsExpanded.value = true
     }
 
-    fun openCitySearch() { _showCitySearch.value = true }
-    fun closeCitySearch() { _showCitySearch.value = false }
+    fun openCitySearch() {
+        _homeSearchResults.value = emptyList()
+        _showCitySearch.value = true
+    }
+    fun closeCitySearch() {
+        _showCitySearch.value = false
+        _homeSearchResults.value = emptyList()
+    }
     fun openChat() {
         viewModelScope.launch {
             _chatRemaining.value = prefsRepo.getChatMessagesRemaining()
@@ -599,9 +932,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         loadDestinations()
     }
 
+    fun completeTripWizard(filters: TravelFilters) {
+        _travelFilters.value = filters
+        _showTripResults.value = true
+        viewModelScope.launch { prefsRepo.clearTripWizardDraft() }
+        _tripWizardDraft.value = null
+        loadDestinations()
+    }
+
+    fun editTripPlan() {
+        _showTripResults.value = false
+    }
+
     fun resetTravelFilters() {
         _travelFilters.value = TravelFilters()
         _manualKm.value = ""
+        _showTripResults.value = false
+        viewModelScope.launch { prefsRepo.clearTripWizardDraft() }
+        _tripWizardDraft.value = null
         loadDestinations()
     }
 
@@ -624,9 +972,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun completeOnboarding() {
         viewModelScope.launch {
+            prefsRepo.setUserMode(UserMode.DEFAULT.id)
+            refreshEnabledVerdicts()
+            refreshVerdictCategories()
             prefsRepo.setOnboardingDone(true)
             _onboardingDone.value = true
-            weatherRepo.startup(locationPermissionGranted)
+            if (!hasBootstrapped) {
+                weatherRepo.startup(locationPermissionGranted)
+            } else {
+                weatherRepo.refresh(locationPermissionGranted)
+            }
         }
     }
 
@@ -675,7 +1030,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectSavedPlace(place: com.kosmos.android.data.SavedPlace) {
         viewModelScope.launch {
-            val geo = GeoLocation(place.city, place.label, null, place.latitude, place.longitude)
+            val geo = GeoLocation(
+                city = place.city,
+                neighborhood = place.label,
+                latitude = place.latitude,
+                longitude = place.longitude,
+            )
             weatherRepo.refreshAt(geo, hasLiveLocation = false)
             loadHyperLocalForGeo(geo)
         }
@@ -765,9 +1125,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun loadRadar() {
         viewModelScope.launch {
             _radarLoading.value = true
-            _radarUrl.value = runCatching { rainViewer.latestRadarUrl() }.getOrNull()
+            val snap = currentSnapshotOrNull() ?: currentSnapshot()
+            _radarResult.value = runCatching {
+                rainViewer.loadRadar(snap.latitude, snap.longitude)
+            }.getOrNull()
             _radarLoading.value = false
         }
+    }
+
+    fun radarCaption(): String {
+        val snap = currentSnapshotOrNull() ?: return LocaleStrings.ui("radar_clear", appLocale.value)
+        val rainSoon = snap.nowcastIsWet || snap.verdicts.any {
+            it.id.startsWith("rain") || it.id.startsWith("umbrella")
+        }
+        return LocaleStrings.ui(
+            if (rainSoon) "radar_approaching" else "radar_clear",
+            appLocale.value,
+        )
     }
 
     fun loadDiary() {

@@ -43,8 +43,6 @@ import androidx.compose.ui.unit.sp
 import com.kosmos.android.data.VerdictCategory
 import com.kosmos.android.i18n.localized
 import com.kosmos.android.ui.designsystem.molecules.CommuteChipRow
-import com.kosmos.android.ui.designsystem.molecules.ModeCardData
-import com.kosmos.android.ui.designsystem.molecules.ModeGrid
 import com.kosmos.android.ui.designsystem.molecules.SettingsLinkRow
 import com.kosmos.android.ui.designsystem.molecules.SettingsRow
 import com.kosmos.android.ui.designsystem.tokens.KosmosDimens
@@ -63,28 +61,38 @@ fun SettingsScreen(
     useDarkMode: Boolean,
     showNumbers: Boolean,
     appLocale: AppLocale,
-    userModeId: String,
     commuteModes: Set<String>,
     morningBriefEnabled: Boolean,
-    modeCards: List<ModeCardData>,
+    workPlaceLabel: String = "",
     onVerdictToggle: (String) -> Unit,
     onCelsiusToggle: () -> Unit,
     on24HourToggle: () -> Unit,
     onDarkModeToggle: () -> Unit,
     onShowNumbersToggle: () -> Unit,
     onLocaleSelect: (AppLocale) -> Unit,
-    onModeSelect: (String) -> Unit,
     onCommuteToggle: (String) -> Unit,
     onMorningBriefToggle: () -> Unit,
+    onWorkPlaceClick: () -> Unit = {},
     onWidgetPreviewClick: () -> Unit,
     onRadarClick: () -> Unit = {},
     onDiaryClick: () -> Unit = {},
     onWallpaperClick: () -> Unit = {},
     onTripPlannerClick: () -> Unit = {},
+    onEmployeeSetupClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
+    onSendTestNotification: () -> Unit = {},
     refreshIntervalMinutes: Int = 30,
     onRefreshIntervalSelect: (Int) -> Unit = {},
     weeklyDigestEnabled: Boolean = true,
     onWeeklyDigestToggle: () -> Unit = {},
+    sensitivityAsthma: Boolean = false,
+    sensitivityKids: Boolean = false,
+    sensitivityWoman: Boolean = false,
+    onSensitivityAsthmaToggle: () -> Unit = {},
+    onSensitivityKidsToggle: () -> Unit = {},
+    onSensitivityWomanToggle: () -> Unit = {},
+    locationLine: String = "",
+    locationSourceLabel: String = "",
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -113,7 +121,36 @@ fun SettingsScreen(
                 .padding(horizontal = 20.dp),
         ) {
             item {
+                if (locationLine.isNotBlank()) {
+                    SectionHeader("Location")
+                    Text(
+                        text = locationLine,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    )
+                    if (locationSourceLabel.isNotBlank()) {
+                        Text(
+                            text = "Source: $locationSourceLabel",
+                            style = KosmosTextStyles.settingsSubtitle,
+                            color = KosmosThemeExt.colors.textSecondary,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
+                }
+
                 SectionHeader("Daily brief")
+                SettingsLinkRow(
+                    title = localized("notifications_title"),
+                    subtitle = localized("notifications_empty_sub"),
+                    onClick = onNotificationsClick,
+                )
+                SettingsLinkRow(
+                    title = localized("send_test_notification"),
+                    subtitle = localized("send_test_notification_sub"),
+                    onClick = onSendTestNotification,
+                )
                 Text(
                     text = "Every day around 7 AM, Kosmos sends a short weather brief — rain timing, heat, air, and what to plan. Same insights as Home, in your notification shade.",
                     style = KosmosTextStyles.settingsSubtitle,
@@ -139,11 +176,15 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
 
-                SectionHeader(localized("your_mode"))
-                ModeGrid(
-                    modes = modeCards,
-                    selectedModeId = userModeId,
-                    onModeSelect = onModeSelect,
+                SectionHeader("Your day")
+                SettingsLinkRow(
+                    title = if (workPlaceLabel.isNotBlank()) "Work: $workPlaceLabel" else "Add your work place",
+                    subtitle = if (workPlaceLabel.isNotBlank()) {
+                        "Commute insights use your office location"
+                    } else {
+                        "Optional — unlock commute timing for your route"
+                    },
+                    onClick = onWorkPlaceClick,
                 )
                 Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
 
@@ -152,6 +193,35 @@ fun SettingsScreen(
                     selected = commuteModes,
                     onToggle = onCommuteToggle,
                     modifier = Modifier.padding(vertical = 8.dp),
+                )
+                Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
+
+                Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
+
+                SectionHeader("About you (optional)")
+                Text(
+                    text = "Turn on only what applies — Kosmos adds extra insights on top of your day.",
+                    style = KosmosTextStyles.settingsSubtitle,
+                    color = KosmosThemeExt.colors.textSecondary,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                SettingsRow(
+                    title = "I have kids",
+                    subtitle = if (sensitivityKids) "School run, playground, kids' air" else "Standard outdoor limits",
+                    checked = sensitivityKids,
+                    onToggle = onSensitivityKidsToggle,
+                )
+                SettingsRow(
+                    title = "I am a woman",
+                    subtitle = if (sensitivityWoman) "SPF, humidity, evening safety" else "Standard day insights",
+                    checked = sensitivityWoman,
+                    onToggle = onSensitivityWomanToggle,
+                )
+                SettingsRow(
+                    title = "Asthma / allergy",
+                    subtitle = if (sensitivityAsthma) "Stricter air-quality alerts" else "Standard air alerts",
+                    checked = sensitivityAsthma,
+                    onToggle = onSensitivityAsthmaToggle,
                 )
                 Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
 
