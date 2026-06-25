@@ -56,7 +56,7 @@ fun KosmosPlusScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = if (isPlus) "You're on Kosmos+" else "Unlock the full Kosmos experience",
+                text = if (isPlus) "You're on Komos+" else "Unlock the full Komos experience",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = KosmosThemeExt.colors.textPrimary,

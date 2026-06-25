@@ -345,7 +345,7 @@ class LocationRepository(
                 "https://nominatim.openstreetmap.org/reverse" +
                     "?lat=$lat&lon=$lon&format=json&addressdetails=1&zoom=14&accept-language=en",
             ) {
-                header("User-Agent", "KosmosAlpha/1.0 Android weather")
+                header("User-Agent", "Komos/1.0 Android weather")
             }.body<String>()
             val data = json.decodeFromString<NominatimReverseResponse>(response)
             val address = data.address ?: return null

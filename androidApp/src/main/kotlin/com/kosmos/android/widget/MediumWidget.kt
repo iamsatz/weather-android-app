@@ -34,7 +34,7 @@ class MediumWidget : GlanceAppWidget() {
                 if (snapshot != null) {
                     MediumWidgetContent(snapshot)
                 } else {
-                    WidgetPlaceholder("Tap to open Kosmos")
+                    WidgetPlaceholder("Tap to open Komos")
                 }
             }
         }
@@ -77,7 +77,7 @@ fun WidgetPlaceholder(message: String) {
             .clickable(widgetOpenAppAction()),
     ) {
         Text(
-            text = "Kosmos",
+            text = "Komos",
             style = TextStyle(fontSize = 14.sp, color = ColorProvider(Color.White)),
         )
         Text(

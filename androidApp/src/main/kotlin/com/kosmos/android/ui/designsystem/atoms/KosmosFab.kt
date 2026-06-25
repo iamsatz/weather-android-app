@@ -40,6 +40,6 @@ fun KosmosFab(
 @Composable
 private fun KosmosFabPreview() {
     KosmosTheme {
-        KosmosFab(label = "Ask Kosmos", onClick = {})
+        KosmosFab(label = "Ask Komos", onClick = {})
     }
 }

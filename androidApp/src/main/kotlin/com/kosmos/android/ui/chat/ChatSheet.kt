@@ -125,16 +125,16 @@ fun ChatSheet(
             ) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Ask Kosmos", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                        Text("Ask Komos", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
                         if (limitReached) {
                             KplusBadge(modifier = Modifier.padding(start = 8.dp))
                         }
                     }
                     Text(
                         text = if (limitReached) {
-                            "Daily limit reached · Kosmos+ for unlimited"
+                            "Daily limit reached · Komos+ for unlimited"
                         } else if (isKosmosPlus) {
-                            "Unlimited questions with Kosmos+"
+                            "Unlimited questions with Komos+"
                         } else {
                             "$chatRemaining of ${PreferencesRepository.FREE_CHAT_DAILY} free questions left today"
                         },
@@ -270,7 +270,7 @@ private fun ChatInputPill(
             decorationBox = { inner ->
                 if (value.isEmpty()) {
                     Text(
-                        text = if (limitReached) "Come back tomorrow or get Kosmos+" else "Ask about your day…",
+                        text = if (limitReached) "Come back tomorrow or get Komos+" else "Ask about your day…",
                         color = colors.textMuted,
                         fontSize = 15.sp,
                     )
@@ -315,7 +315,7 @@ private suspend fun sendMessage(
         is ChatRepository.ChatResult.Success ->
             messages.add(ChatMessage("assistant", result.answer))
         is ChatRepository.ChatResult.LimitReached ->
-            messages.add(ChatMessage("assistant", "You've used your 5 free questions today. Kosmos+ unlocks unlimited chat."))
+            messages.add(ChatMessage("assistant", "You've used your 5 free questions today. Komos+ unlocks unlimited chat."))
         is ChatRepository.ChatResult.Error ->
             messages.add(ChatMessage("assistant", result.message))
     }

@@ -38,7 +38,7 @@
         <receiver
             android:name=".widget.MediumWidgetReceiver"
             android:exported="true"
-            android:label="Kosmos Weather">
+            android:label="Komos Weather">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -50,7 +50,7 @@
         <receiver
             android:name=".widget.SmallWidgetReceiver"
             android:exported="true"
-            android:label="Kosmos Compact">
+            android:label="Komos Compact">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -62,7 +62,7 @@
         <receiver
             android:name=".widget.LargeWidgetReceiver"
             android:exported="true"
-            android:label="Kosmos Full">
+            android:label="Komos Full">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -74,7 +74,7 @@
         <receiver
             android:name=".widget.XlWidgetReceiver"
             android:exported="true"
-            android:label="Kosmos XL">
+            android:label="Komos XL">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -86,7 +86,7 @@
         <receiver
             android:name=".widget.TodaysCallWidgetReceiver"
             android:exported="true"
-            android:label="Kosmos Today's Call">
+            android:label="Komos Today's Call">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -98,7 +98,7 @@
         <receiver
             android:name=".widget.NextRainWidgetReceiver"
             android:exported="true"
-            android:label="Kosmos Next Rain">
+            android:label="Komos Next Rain">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -110,7 +110,7 @@
         <receiver
             android:name=".widget.ModeAwareWidgetReceiver"
             android:exported="true"
-            android:label="Kosmos Mode">
+            android:label="Komos Mode">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -122,7 +122,7 @@
         <receiver
             android:name=".widget.BestWindowsWidgetReceiver"
             android:exported="true"
-            android:label="Kosmos Best Windows">
+            android:label="Komos Best Windows">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

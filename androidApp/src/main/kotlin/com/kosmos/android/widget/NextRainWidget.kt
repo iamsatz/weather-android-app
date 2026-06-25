@@ -35,7 +35,7 @@ class NextRainWidget : GlanceAppWidget() {
         provideContent {
             GlanceTheme {
                 if (snapshot != null) NextRainContent(snapshot)
-                else WidgetPlaceholder("Tap to open Kosmos")
+                else WidgetPlaceholder("Tap to open Komos")
             }
         }
     }

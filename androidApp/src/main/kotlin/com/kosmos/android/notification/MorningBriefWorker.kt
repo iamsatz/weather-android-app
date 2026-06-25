@@ -39,14 +39,14 @@ class MorningBriefWorker(
                 .map { "${it.emoji} ${it.title}" }
 
             val body = if (lines.isEmpty()) {
-                "${snapshot.conditionLabel} · ${snapshot.temp}° — open Kosmos for your day plan."
+                "${snapshot.conditionLabel} · ${snapshot.temp}° — open Komos for your day plan."
             } else {
                 lines.joinToString("\n")
             }
 
             val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle("Kosmos · ${snapshot.locationLine}")
+                .setContentTitle("Komos · ${snapshot.locationLine}")
                 .setContentText(lines.firstOrNull() ?: "Your morning weather brief")
                 .setStyle(NotificationCompat.BigTextStyle().bigText(body))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -59,7 +59,7 @@ class MorningBriefWorker(
 
             NotificationLogger.log(
                 applicationContext,
-                title = "Kosmos · ${snapshot.locationLine}",
+                title = "Komos · ${snapshot.locationLine}",
                 body = body,
                 type = "morning_brief",
             )

@@ -379,7 +379,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             com.kosmos.android.notification.NotificationLogger.log(
                 getApplication(),
-                title = "Kosmos · ${snap.appBarTitle.ifBlank { snap.city }}",
+                title = "Komos · ${snap.appBarTitle.ifBlank { snap.city }}",
                 body = body,
                 type = "test",
             )

@@ -35,7 +35,7 @@ class ModeAwareWidget : GlanceAppWidget() {
         provideContent {
             GlanceTheme {
                 if (snapshot != null) ModeAwareContent(snapshot)
-                else WidgetPlaceholder("Tap to open Kosmos")
+                else WidgetPlaceholder("Tap to open Komos")
             }
         }
     }
@@ -47,7 +47,7 @@ fun ModeAwareContent(snapshot: WeatherSnapshot) {
     val locale = AppLocale.fromCode(snapshot.localeCode)
     val meta = ModeCatalog.all.firstOrNull { it.mode.id == snapshot.userModeId }
     val modeEmoji = meta?.emoji ?: "🧩"
-    val modeName = meta?.let { LocaleStrings.ui(it.nameKey, locale) } ?: "Kosmos"
+    val modeName = meta?.let { LocaleStrings.ui(it.nameKey, locale) } ?: "Komos"
 
     val verdicts = snapshot.verdicts
         .filter { it.priority != VerdictPriority.NORMAL }

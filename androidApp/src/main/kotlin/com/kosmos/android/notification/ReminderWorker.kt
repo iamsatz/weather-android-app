@@ -22,7 +22,7 @@ class ReminderWorker(
         if (!canPostNotifications()) return Result.success()
 
         val emoji = inputData.getString(KEY_EMOJI) ?: "⏰"
-        val title = inputData.getString(KEY_TITLE) ?: "Kosmos reminder"
+        val title = inputData.getString(KEY_TITLE) ?: "Komos reminder"
         val detail = inputData.getString(KEY_DETAIL) ?: "Your window is coming up."
         val verdictId = inputData.getString(KEY_VERDICT_ID) ?: "reminder"
 

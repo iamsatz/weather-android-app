@@ -217,12 +217,12 @@ fun HomeScreen(
         )
 
         KosmosFab(
-            label = "Ask Kosmos",
+            label = "Ask Komos",
             onClick = onChatClick,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = KosmosDimens.fabBottom)
-                .semantics { contentDescription = "Ask Kosmos, open chat" },
+                .semantics { contentDescription = "Ask Komos, open chat" },
         )
     }
 }

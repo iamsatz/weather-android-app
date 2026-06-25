@@ -40,7 +40,7 @@ class ChatRepository(private val context: Context) {
                             ChatMessage(
                                 role = "system",
                                 content = """
-                                    You are Kosmos, a weather + wellness companion for India.
+                                    You are Komos, a weather + wellness companion for India.
                                     Decision-first. Specific times. Max 2 emojis. Never start with Hello or Sure.
                                     Never show raw numbers without plain English meaning.
                                     $languageRule
@@ -58,7 +58,7 @@ class ChatRepository(private val context: Context) {
                 ?: "Couldn't get an answer right now — try again in a moment."
             ChatResult.Success(answer)
         } catch (_: Exception) {
-            ChatResult.Error("Couldn't reach Kosmos right now — check your connection and try again.")
+            ChatResult.Error("Couldn't reach Komos right now — check your connection and try again.")
         }
     }
 

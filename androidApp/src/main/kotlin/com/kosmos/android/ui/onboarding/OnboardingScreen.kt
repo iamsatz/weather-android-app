@@ -38,17 +38,17 @@ private data class OnboardingPage(
 private val pages = listOf(
     OnboardingPage(
         "Weather that tells you what to do",
-        "Kosmos turns forecasts into plain-English insights — not just numbers. UV 6 means nothing. 'Sun is brutal — 15 min max' means everything.",
+        "Komos turns forecasts into plain-English insights — not just numbers. UV 6 means nothing. 'Sun is brutal — 15 min max' means everything.",
         "✨",
     ),
     OnboardingPage(
         "Your 7 AM daily brief",
-        "Every morning around 7, Kosmos sends a short brief: rain timing, heat, air, and what to plan. Turn it on in Settings anytime.",
+        "Every morning around 7, Komos sends a short brief: rain timing, heat, air, and what to plan. Turn it on in Settings anytime.",
         "🔔",
     ),
     OnboardingPage(
         "Hyper-local for where you are",
-        "Allow location so Kosmos can fetch weather at your spot — not to track you. Without GPS we only guess from your network, which can be wrong.",
+        "Allow location so Komos can fetch weather at your spot — not to track you. Without GPS we only guess from your network, which can be wrong.",
         "📍",
     ),
 )

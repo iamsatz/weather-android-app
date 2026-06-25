@@ -27,7 +27,7 @@ fun VerdictShareCard(
             .padding(20.dp),
     ) {
         Text(
-            text = "Kosmos",
+            text = "Komos",
             color = Color(0xFF6EC6FF),
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Kosmos Alpha</string>
+    <string name="app_name">Komos</string>
     <string name="widget_medium_description">City, temp, and top 2 verdicts</string>
     <string name="widget_small_description">Temp, condition, and top verdict</string>
     <string name="widget_large_description">Full insights and hourly strip</string>

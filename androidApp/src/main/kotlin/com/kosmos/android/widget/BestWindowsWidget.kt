@@ -40,7 +40,7 @@ class BestWindowsWidget : GlanceAppWidget() {
         provideContent {
             GlanceTheme {
                 if (snapshot != null) BestWindowsContent(snapshot, reminded)
-                else WidgetPlaceholder("Tap to open Kosmos")
+                else WidgetPlaceholder("Tap to open Komos")
             }
         }
     }
@@ -122,7 +122,7 @@ class RemindActionCallback : ActionCallback {
             context = context,
             verdictId = id,
             emoji = parameters[emojiKey] ?: "⏰",
-            title = parameters[titleKey] ?: "Kosmos reminder",
+            title = parameters[titleKey] ?: "Komos reminder",
             detail = parameters[detailKey] ?: "Your window is coming up.",
             startHour = start,
         )

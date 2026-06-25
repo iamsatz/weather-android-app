@@ -32,7 +32,7 @@ class TodaysCallWidget : GlanceAppWidget() {
         provideContent {
             GlanceTheme {
                 if (snapshot != null) TodaysCallContent(snapshot)
-                else WidgetPlaceholder("Tap to open Kosmos")
+                else WidgetPlaceholder("Tap to open Komos")
             }
         }
     }

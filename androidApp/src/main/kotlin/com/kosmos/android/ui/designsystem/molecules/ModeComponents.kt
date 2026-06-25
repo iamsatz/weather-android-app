@@ -96,7 +96,7 @@ fun ModeCard(
                 )
             }
             Text(
-                text = if (locked) "🔒 Kosmos+ required" else description,
+                text = if (locked) "🔒 Komos+ required" else description,
                 fontSize = 12.sp,
                 color = KosmosThemeExt.colors.textMuted,
                 modifier = Modifier.padding(top = 2.dp),

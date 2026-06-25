@@ -152,7 +152,7 @@ fun SettingsScreen(
                     onClick = onSendTestNotification,
                 )
                 Text(
-                    text = "Every day around 7 AM, Kosmos sends a short weather brief — rain timing, heat, air, and what to plan. Same insights as Home, in your notification shade.",
+                    text = "Every day around 7 AM, Komos sends a short weather brief — rain timing, heat, air, and what to plan. Same insights as Home, in your notification shade.",
                     style = KosmosTextStyles.settingsSubtitle,
                     color = KosmosThemeExt.colors.textSecondary,
                     modifier = Modifier.padding(bottom = 12.dp),
@@ -200,7 +200,7 @@ fun SettingsScreen(
 
                 SectionHeader("About you (optional)")
                 Text(
-                    text = "Turn on only what applies — Kosmos adds extra insights on top of your day.",
+                    text = "Turn on only what applies — Komos adds extra insights on top of your day.",
                     style = KosmosTextStyles.settingsSubtitle,
                     color = KosmosThemeExt.colors.textSecondary,
                     modifier = Modifier.padding(bottom = 8.dp),
@@ -235,7 +235,7 @@ fun SettingsScreen(
 
                 SectionHeader("Updates")
                 Text(
-                    text = "How often Kosmos refreshes weather in the background. Pull down on Home anytime for an instant update.",
+                    text = "How often Komos refreshes weather in the background. Pull down on Home anytime for an instant update.",
                     style = KosmosTextStyles.settingsSubtitle,
                     color = KosmosThemeExt.colors.textSecondary,
                     modifier = Modifier.padding(bottom = 12.dp),
@@ -301,7 +301,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
                 SectionHeader("Data & privacy")
                 Text(
-                    text = "Kosmos sends your coordinates to Open-Meteo for weather and air quality. AI chat goes to Pollinations.ai. Location is only used for forecasts — we do not sell or track you.",
+                    text = "Komos sends your coordinates to Open-Meteo for weather and air quality. AI chat goes to Pollinations.ai. Location is only used for forecasts — we do not sell or track you.",
                     style = KosmosTextStyles.settingsSubtitle,
                     color = KosmosThemeExt.colors.textSecondary,
                     modifier = Modifier.padding(bottom = 12.dp),

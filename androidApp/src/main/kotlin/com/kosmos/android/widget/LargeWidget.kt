@@ -30,7 +30,7 @@ class LargeWidget : GlanceAppWidget() {
                 if (snapshot != null) {
                     LargeWidgetContent(snapshot)
                 } else {
-                    WidgetPlaceholder("Tap to open Kosmos")
+                    WidgetPlaceholder("Tap to open Komos")
                 }
             }
         }

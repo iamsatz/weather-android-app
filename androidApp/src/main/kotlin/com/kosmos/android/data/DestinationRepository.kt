@@ -95,7 +95,7 @@ class DestinationRepository {
                         WhyGoMessage(
                             role = "system",
                             content = """
-                                You are Kosmos travel weather advisor for India.
+                                You are Komos travel weather advisor for India.
                                 One sentence only. Decision-first. Weather-only. Max 1 emoji.
                                 Never mention hotels, rooms, or booking.
                                 Never start with Hello or Sure.

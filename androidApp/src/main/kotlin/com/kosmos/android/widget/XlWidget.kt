@@ -30,7 +30,7 @@ class XlWidget : GlanceAppWidget() {
                 if (snapshot != null) {
                     XlWidgetContent(snapshot)
                 } else {
-                    WidgetPlaceholder("Tap to open Kosmos")
+                    WidgetPlaceholder("Tap to open Komos")
                 }
             }
         }

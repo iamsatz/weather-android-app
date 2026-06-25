@@ -124,7 +124,7 @@ class HyperLocalRepository(
                         AgentMessage(
                             role = "system",
                             content = """
-                                You are Kosmos hyper-local weather agent for India.
+                                You are Komos hyper-local weather agent.
                                 Cross-check fused forecast data with what locals might report (traffic, sudden drizzle, heat pockets).
                                 Weather-only. 2-3 sentences. Decision-first. Max 1 emoji.
                                 Ground everything in the official fused numbers provided — do not invent numbers.

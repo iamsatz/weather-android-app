@@ -58,8 +58,8 @@ android {
         outputs.configureEach {
             val outputImpl = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
             outputImpl.outputFileName = when (buildType.name) {
-                "debug" -> "KosmosAlpha.apk"
-                else -> "KosmosAlpha-${buildType.name}.apk"
+                "debug" -> "Komos.apk"
+                else -> "Komos-${buildType.name}.apk"
             }
         }
     }

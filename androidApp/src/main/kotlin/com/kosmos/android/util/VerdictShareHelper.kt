@@ -19,11 +19,11 @@ import java.io.FileOutputStream
 object VerdictShareHelper {
 
     fun formatShareText(locationLine: String, verdict: Verdict): String =
-        "Kosmos · $locationLine\n${verdict.emoji} ${verdict.title}\n${verdict.detail}"
+        "Komos · $locationLine\n${verdict.emoji} ${verdict.title}\n${verdict.detail}"
 
     fun copyToClipboard(context: Context, text: String) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Kosmos verdict", text))
+        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Komos verdict", text))
     }
 
     fun shareViaWhatsApp(context: Context, text: String) {

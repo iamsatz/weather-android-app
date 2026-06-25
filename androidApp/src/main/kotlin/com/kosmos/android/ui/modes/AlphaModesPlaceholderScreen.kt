@@ -37,7 +37,7 @@ fun AlphaModesPlaceholderScreen(
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "Kosmos Alpha is built for your working day — commute, heat, rain, air. " +
+                text = "Komos is built for your working day — commute, heat, rain, air. " +
                     "Optional extras like Photographer mode land in Beta 1 after we lock the information.",
                 fontSize = 15.sp,
                 lineHeight = 22.sp,

@@ -20,7 +20,7 @@ fun KplusBadge(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text = "Kosmos+",
+        text = "Komos+",
         fontSize = 9.sp,
         fontWeight = FontWeight.SemiBold,
         color = Color.White,
