@@ -7,101 +7,141 @@ import androidx.compose.ui.unit.sp
 
 val KosmosTypography = Typography(
     displayLarge = TextStyle(
-        fontFamily = PlayfairFontFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 88.sp,
-        lineHeight = 92.sp,
-        letterSpacing = (-1).sp,
+        fontFamily = SolwayFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 72.sp,
+        lineHeight = 80.sp,
     ),
     titleLarge = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = SolwayFontFamily,
+        fontWeight = FontWeight.Bold,
         fontSize = 18.sp,
+        lineHeight = 22.sp,
     ),
     titleMedium = TextStyle(
-        fontFamily = InterFontFamily,
+        fontFamily = PublicSansFontFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 15.sp,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
     ),
     bodyMedium = TextStyle(
-        fontFamily = InterFontFamily,
+        fontFamily = PublicSansFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
-        lineHeight = 17.sp,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
     ),
     labelSmall = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 12.sp,
-        letterSpacing = 0.8.sp,
+        fontFamily = PublicSansFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        lineHeight = 16.sp,
     ),
 )
 
 object KosmosTextStyles {
-    val locationHeader = TextStyle(
-        fontFamily = InterFontFamily,
+    val heroTitle = TextStyle(
+        fontFamily = SolwayFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        lineHeight = 34.sp,
+    )
+    val popoverHeroTitle = TextStyle(
+        fontFamily = SolwayFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 21.sp,
+        lineHeight = 25.sp,
+    )
+    val cardTitle = TextStyle(
+        fontFamily = SolwayFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp,
+        lineHeight = 22.sp,
+    )
+    val temp = TextStyle(
+        fontFamily = SolwayFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 72.sp,
+        lineHeight = 80.sp,
+    )
+    val rowTitle = TextStyle(
+        fontFamily = PublicSansFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
+    )
+    val body = TextStyle(
+        fontFamily = PublicSansFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+    )
+    val label = TextStyle(
+        fontFamily = PublicSansFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        lineHeight = 16.sp,
+    )
+    val caption = TextStyle(
+        fontFamily = PublicSansFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+    )
+    val time = TextStyle(
+        fontFamily = PublicSansFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
+    )
+
+    val compactHeroTitle = TextStyle(
+        fontFamily = SolwayFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 21.sp,
+        lineHeight = 25.sp,
+    )
+    val compactCardTitle = TextStyle(
+        fontFamily = SolwayFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 16.sp,
+        lineHeight = 19.sp,
+    )
+    val compactRowTitle = TextStyle(
+        fontFamily = PublicSansFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 13.sp,
+        lineHeight = 16.sp,
+    )
+    val compactBody = TextStyle(
+        fontFamily = PublicSansFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+    )
+    val compactLabel = TextStyle(
+        fontFamily = PublicSansFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
-        letterSpacing = 1.2.sp,
+        lineHeight = 13.sp,
     )
-    val dateHeader = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
+    val widgetTemp = TextStyle(
+        fontFamily = SolwayFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        lineHeight = 36.sp,
     )
-    val heroVerdictLabel = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 17.sp,
-    )
-    val cityPill = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 15.sp,
-    )
-    val conditionLabel = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 18.sp,
-    )
-    val feelsLike = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
-    )
-    val hiLo = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-    )
-    val verdictTitle = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 15.sp,
-    )
-    val verdictDetail = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-    )
-    val hourlyTime = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-    )
-    val hourlyTemp = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 16.sp,
-    )
-    val settingsTitle = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 16.sp,
-    )
-    val settingsSubtitle = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
-    )
+
+    val locationHeader = compactLabel.copy(letterSpacing = 0.sp)
+    val dateHeader = body
+    val heroVerdictLabel = rowTitle
+    val cityPill = compactRowTitle
+    val conditionLabel = rowTitle
+    val feelsLike = body
+    val hiLo = caption
+    val verdictTitle = cardTitle.copy(fontSize = 16.sp, lineHeight = 19.sp)
+    val verdictDetail = compactBody
+    val hourlyTime = compactLabel
+    val hourlyTemp = time.copy(fontWeight = FontWeight.SemiBold)
+    val settingsTitle = rowTitle
+    val settingsSubtitle = body
 }

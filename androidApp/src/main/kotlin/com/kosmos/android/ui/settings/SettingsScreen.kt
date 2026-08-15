@@ -72,12 +72,12 @@ fun SettingsScreen(
     onLocaleSelect: (AppLocale) -> Unit,
     onCommuteToggle: (String) -> Unit,
     onMorningBriefToggle: () -> Unit,
+    onModesClick: () -> Unit = {},
     onWorkPlaceClick: () -> Unit = {},
     onWidgetPreviewClick: () -> Unit,
     onRadarClick: () -> Unit = {},
     onDiaryClick: () -> Unit = {},
     onWallpaperClick: () -> Unit = {},
-    onTripPlannerClick: () -> Unit = {},
     onEmployeeSetupClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     onSendTestNotification: () -> Unit = {},
@@ -102,14 +102,16 @@ fun SettingsScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(localized("settings"), fontWeight = FontWeight.SemiBold) },
+                title = { Text(localized("settings"), style = KosmosTextStyles.cardTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = KosmosThemeExt.colors.cardBackground,
+                    titleContentColor = KosmosThemeExt.colors.textPrimary,
+                    navigationIconContentColor = KosmosThemeExt.colors.textPrimary,
                 ),
             )
         },
@@ -118,15 +120,15 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = KosmosDimens.lg),
         ) {
             item {
                 if (locationLine.isNotBlank()) {
                     SectionHeader("Location")
                     Text(
                         text = locationLine,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
+                        style = KosmosTextStyles.rowTitle,
+                        color = KosmosThemeExt.colors.textPrimary,
                         modifier = Modifier.padding(bottom = 4.dp),
                     )
                     if (locationSourceLabel.isNotBlank()) {
@@ -139,6 +141,14 @@ fun SettingsScreen(
                     }
                     Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
                 }
+
+                SectionHeader("Modes")
+                SettingsLinkRow(
+                    title = localized("modes_title"),
+                    subtitle = localized("modes_subtitle"),
+                    onClick = onModesClick,
+                )
+                Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
 
                 SectionHeader("Daily brief")
                 SettingsLinkRow(
@@ -194,6 +204,12 @@ fun SettingsScreen(
                     onToggle = onCommuteToggle,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
+                Text(
+                    text = "Bike and car are always on the Routes tab. Cab and public transport show there when you turn them on here.",
+                    style = KosmosTextStyles.settingsSubtitle,
+                    color = KosmosThemeExt.colors.textSecondary,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
                 Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
 
                 Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
@@ -225,14 +241,6 @@ fun SettingsScreen(
                 )
                 Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
 
-                SectionHeader("Plan a getaway")
-                SettingsLinkRow(
-                    title = "Trip planner",
-                    subtitle = "When you're going, group size, transport — weather-first picks",
-                    onClick = onTripPlannerClick,
-                )
-                Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
-
                 SectionHeader("Updates")
                 Text(
                     text = "How often Komos refreshes weather in the background. Pull down on Home anytime for an instant update.",
@@ -246,14 +254,6 @@ fun SettingsScreen(
                 )
                 Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
 
-                SectionHeader(localized("appearance"))
-                SettingsRow(
-                    title = localized("dark_mode"),
-                    subtitle = if (useDarkMode) localized("dark_mode_on") else localized("dark_mode_off"),
-                    checked = useDarkMode,
-                    onToggle = onDarkModeToggle,
-                )
-                Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
                 SectionHeader(localized("units_format"))
                 SettingsRow(
                     title = localized("temperature"),
@@ -373,6 +373,18 @@ fun SettingsScreen(
             }
 
             item { Spacer(modifier = Modifier.height(32.dp)) }
+
+            item {
+                Text(
+                    text = "Komos · v${com.kosmos.android.BuildConfig.VERSION_NAME} (${com.kosmos.android.BuildConfig.VERSION_CODE})",
+                    style = KosmosTextStyles.settingsSubtitle,
+                    color = KosmosThemeExt.colors.textMuted,
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                )
+            }
         }
     }
 }
@@ -422,8 +434,8 @@ private fun RefreshIntervalRow(
 private fun SectionHeader(text: String) {
     Text(
         text = text.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.primary,
+        style = KosmosTextStyles.label,
+        color = KosmosThemeExt.colors.accent,
         modifier = Modifier.padding(vertical = 12.dp),
     )
     HorizontalDivider(color = KosmosThemeExt.colors.border)

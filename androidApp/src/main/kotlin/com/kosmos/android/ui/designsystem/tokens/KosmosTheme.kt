@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import com.kosmos.android.ui.designsystem.tokens.ElderTypography
 
 data class KosmosExtendedColors(
     val cardBackground: Color,
@@ -16,15 +15,23 @@ data class KosmosExtendedColors(
     val textSecondary: Color,
     val textMuted: Color,
     val border: Color,
+    val bgSubtle: Color,
+    val bgPill: Color,
+    val accent: Color,
+    val temp: Color,
 )
 
 val LocalKosmosColors = staticCompositionLocalOf {
     KosmosExtendedColors(
-        cardBackground = KosmosColor.cardBackground,
+        cardBackground = KosmosColor.bgSurface,
         textPrimary = KosmosColor.textPrimary,
         textSecondary = KosmosColor.textSecondary,
-        textMuted = KosmosColor.textMuted,
+        textMuted = KosmosColor.textTertiary,
         border = KosmosColor.border,
+        bgSubtle = KosmosColor.bgSubtle,
+        bgPill = KosmosColor.bgPill,
+        accent = KosmosColor.accent,
+        temp = KosmosColor.temp,
     )
 }
 
@@ -34,23 +41,27 @@ object KosmosThemeExt {
 }
 
 private val LightColorScheme = lightColorScheme(
-    primary = KosmosColor.primary,
+    primary = KosmosColor.accent,
     onPrimary = Color.White,
-    surface = KosmosColor.surfaceLight,
+    surface = KosmosColor.bgSurface,
     onSurface = KosmosColor.textPrimary,
-    surfaceVariant = Color(0xFFF0F0F5),
-    onSurfaceVariant = KosmosColor.textMuted,
+    surfaceVariant = KosmosColor.bgSubtle,
+    onSurfaceVariant = KosmosColor.textSecondary,
+    background = KosmosColor.bgSurface,
+    onBackground = KosmosColor.textPrimary,
+    outline = KosmosColor.border,
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = KosmosColor.primaryLight,
-    onPrimary = Color(0xFF0A0B1A),
-    background = KosmosColor.surfaceDark,
-    onBackground = Color(0xFFEEEEF5),
-    surface = KosmosColor.surfaceDark,
-    onSurface = Color(0xFFEEEEF5),
-    surfaceVariant = KosmosColor.surfaceVariantDark,
-    onSurfaceVariant = Color(0xFF9898B0),
+    primary = KosmosColor.accent,
+    onPrimary = Color.White,
+    background = KosmosColor.bgSurfaceDark,
+    onBackground = KosmosColor.textPrimaryDark,
+    surface = KosmosColor.bgSurfaceDark,
+    onSurface = KosmosColor.textPrimaryDark,
+    surfaceVariant = KosmosColor.bgSubtleDark,
+    onSurfaceVariant = KosmosColor.textSecondaryDark,
+    outline = KosmosColor.borderDark,
 )
 
 @Composable
@@ -66,20 +77,32 @@ fun KosmosTheme(
             textSecondary = if (darkTheme) Color(0xFFE0E0E0) else Color(0xFF1A1A1A),
             textMuted = if (darkTheme) Color(0xFFCCCCCC) else Color(0xFF333333),
             border = if (darkTheme) Color(0xFFFFFFFF) else Color(0xFF000000),
+            bgSubtle = if (darkTheme) Color(0xFF000000) else Color(0xFFFFFFFF),
+            bgPill = if (darkTheme) Color(0xFF111111) else Color(0xFFEDEBE9),
+            accent = if (darkTheme) Color.White else Color.Black,
+            temp = if (darkTheme) Color.White else Color.Black,
         )
         darkTheme -> KosmosExtendedColors(
-            cardBackground = KosmosColor.cardBackgroundDark,
-            textPrimary = Color(0xFFEEEEF5),
-            textSecondary = Color(0xFFB0B0C8),
-            textMuted = Color(0xFF9898B0),
-            border = Color(0xFF2A2A40),
+            cardBackground = KosmosColor.bgSurfaceDark,
+            textPrimary = KosmosColor.textPrimaryDark,
+            textSecondary = KosmosColor.textSecondaryDark,
+            textMuted = KosmosColor.textTertiaryDark,
+            border = KosmosColor.borderDark,
+            bgSubtle = KosmosColor.bgSubtleDark,
+            bgPill = KosmosColor.bgPillDark,
+            accent = KosmosColor.accent,
+            temp = KosmosColor.temp,
         )
         else -> KosmosExtendedColors(
-            cardBackground = KosmosColor.cardBackground,
+            cardBackground = KosmosColor.bgSurface,
             textPrimary = KosmosColor.textPrimary,
             textSecondary = KosmosColor.textSecondary,
-            textMuted = KosmosColor.textMuted,
+            textMuted = KosmosColor.textTertiary,
             border = KosmosColor.border,
+            bgSubtle = KosmosColor.bgSubtle,
+            bgPill = KosmosColor.bgPill,
+            accent = KosmosColor.accent,
+            temp = KosmosColor.temp,
         )
     }
 

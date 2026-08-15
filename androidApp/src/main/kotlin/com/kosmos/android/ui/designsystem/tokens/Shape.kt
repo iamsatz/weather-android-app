@@ -11,4 +11,5 @@ object KosmosShape {
     val timelineChip: Shape = RoundedCornerShape(KosmosDimens.timelineChipRadius)
     val fab: Shape = CircleShape
     val accentBar: Shape = RoundedCornerShape(2.dp)
+    val pill: Shape = RoundedCornerShape(KosmosDimens.chipRadius)
 }

@@ -2,12 +2,17 @@ package com.kosmos.android.ui.designsystem.organisms
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,16 +23,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kosmos.android.model.VerdictPriority
 import com.kosmos.android.model.WeatherSnapshot
 import com.kosmos.android.prototype.PrototypeData
-import com.kosmos.android.ui.designsystem.atoms.AqiBadge
+import com.kosmos.android.ui.designsystem.atoms.ActivityChipRow
+import com.kosmos.android.ui.designsystem.atoms.VerdictArt
+import com.kosmos.android.ui.designsystem.tokens.ElderTypography
 import com.kosmos.android.ui.designsystem.tokens.KosmosColor
 import com.kosmos.android.ui.designsystem.tokens.KosmosDimens
-import com.kosmos.android.ui.designsystem.tokens.ElderTypography
+import com.kosmos.android.ui.designsystem.tokens.KosmosShape
 import com.kosmos.android.ui.designsystem.tokens.KosmosTextStyles
 import com.kosmos.android.ui.designsystem.tokens.KosmosTheme
 import com.kosmos.android.ui.designsystem.tokens.rememberReduceMotionEnabled
@@ -49,83 +58,97 @@ fun HeroBlock(
         animationSpec = tween(durationMillis = if (reduceMotion) 0 else 500),
         label = "heroFade",
     )
-
     val topVerdict = snapshot.verdicts.firstOrNull {
         it.priority == VerdictPriority.SEVERE || it.priority == VerdictPriority.ACTION
     } ?: snapshot.verdicts.firstOrNull()
+    val heroRes = VerdictArt.heroForSnapshot(topVerdict?.id, snapshot.condition)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .alpha(alpha)
-            .padding(top = 4.dp, bottom = KosmosDimens.grid),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(top = KosmosDimens.md),
     ) {
-        Text(
-            text = snapshot.dateLabel,
-            style = KosmosTextStyles.dateHeader,
-            color = KosmosColor.textOnGradient.copy(alpha = 0.9f),
-            modifier = Modifier.padding(bottom = 8.dp),
-        )
-        Text(
-            text = "${snapshot.temp}°",
-            style = if (elderMode) ElderTypography.temp else MaterialTheme.typography.displayLarge,
-            color = KosmosColor.textOnGradient,
-        )
-        topVerdict?.let { verdict ->
+        if (elderMode) {
             Text(
-                text = verdict.title,
-                style = KosmosTextStyles.heroVerdictLabel,
-                color = KosmosColor.textOnGradient.copy(alpha = 0.92f),
-                modifier = Modifier.padding(top = 6.dp),
-                maxLines = 2,
+                text = "${snapshot.temp}°",
+                style = ElderTypography.temp,
+                color = KosmosColor.temp,
             )
-        } ?: Text(
-            text = snapshot.conditionLabel,
-            style = KosmosTextStyles.conditionLabel,
-            color = KosmosColor.textOnGradient,
-            modifier = Modifier.padding(top = 6.dp),
-        )
-        Row(
-            modifier = Modifier.padding(top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
             Text(
-                text = "Feels like ${snapshot.feelsLike}° · ${snapshot.feelsLikePlain}",
-                style = KosmosTextStyles.feelsLike,
-                color = KosmosColor.textOnGradient.copy(alpha = 0.9f),
-            )
-            AqiBadge(
-                label = if (showNumbers && snapshot.aqiValue != null) {
-                    "${snapshot.aqiLabel} · ${snapshot.aqiValue}"
-                } else {
-                    snapshot.aqiLabel
-                },
-                color = Color(snapshot.aqiColor),
+                text = snapshot.feelsLikePlain,
+                style = KosmosTextStyles.body,
+                color = KosmosColor.textPrimary,
+                modifier = Modifier.padding(bottom = KosmosDimens.sm),
             )
         }
-        if (showNumbers) {
-            Text(
-                text = "H ${snapshot.high}° · L ${snapshot.low}°",
-                style = KosmosTextStyles.hiLo,
-                color = KosmosColor.textOnGradient.copy(alpha = 0.75f),
-                modifier = Modifier.padding(top = 4.dp),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(KosmosColor.accent),
             )
-            Text(
-                text = "UV ${snapshot.uvIndex.toInt()} · Humidity ${snapshot.humidity}%",
-                style = KosmosTextStyles.hiLo,
-                color = KosmosColor.textOnGradient.copy(alpha = 0.7f),
-                modifier = Modifier.padding(top = 4.dp),
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                if (!elderMode && topVerdict != null) {
+                    Text(
+                        text = topVerdict.title,
+                        style = KosmosTextStyles.popoverHeroTitle,
+                        color = KosmosColor.accent,
+                        modifier = Modifier.padding(start = KosmosDimens.lg, end = KosmosDimens.lg),
+                    )
+                    val window = topVerdict.timeWindow?.label.orEmpty()
+                    if (window.isNotBlank()) {
+                        Text(
+                            text = window,
+                            style = KosmosTextStyles.body,
+                            color = KosmosColor.textPrimary,
+                            modifier = Modifier.padding(
+                                start = KosmosDimens.lg,
+                                end = KosmosDimens.lg,
+                                top = 4.dp,
+                            ),
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .padding(top = if (elderMode) 0.dp else KosmosDimens.md)
+                        .fillMaxWidth(),
+                ) {
+                    Image(
+                        painter = painterResource(heroRes),
+                        contentDescription = topVerdict?.title ?: snapshot.conditionLabel,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(257.dp)
+                            .clip(KosmosShape.card),
+                        contentScale = ContentScale.Crop,
+                    )
+                    if (!elderMode) {
+                        ActivityChipRow(
+                            showWalk = true,
+                            showExercise = true,
+                            showOutdoor = true,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(KosmosDimens.md),
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF5E89B8)
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 private fun HeroBlockPreview() {
     KosmosTheme {
-        HeroBlock(snapshot = PrototypeData.hyderabadSummerDay, showNumbers = true)
+        HeroBlock(snapshot = PrototypeData.hyderabadSummerDay)
     }
 }

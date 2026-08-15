@@ -3,24 +3,55 @@ package com.kosmos.android.ui.designsystem.tokens
 import androidx.compose.ui.graphics.Color
 
 object KosmosColor {
-    val primary = Color(0xFF3D87D4)
-    val primaryLight = Color(0xFF7BBAF4)
+    val accent = Color(0xFFEB3228)
+    val temp = Color(0xFFC6110C)
+    val primary = accent
+    val primaryLight = Color(0xFFEB3228)
     val nowcastAccent = Color(0xFF3380C7)
 
-    val textPrimary = Color(0xFF1A1A2E)
-    val textSecondary = Color(0xFF4A4A5E)
-    val textMuted = Color(0xFF6B6B80)
+    val bgSurface = Color(0xFFFFFFFF)
+    val insightTime = Color(0xA314141A)
+    val bgSurfaceDark = Color(0xFF161616)
+    val bgSubtle = Color(0xFFF8F8F8)
+    val bgSubtleDark = Color(0xFF222222)
+    val bgPill = Color(0xFFEDEBE9)
+    val bgPillDark = Color(0xFF222222)
+
+    val chipWalk = Color(0xFFFFDDFC)
+    val chipExercise = Color(0xFFFFEBD4)
+    val chipOutdoor = Color(0xFFE7F2B9)
+
+    val ribbonGo = Color(0xFF4A7C32)
+    val ribbonCaution = Color(0xFF8A5A12)
+    val ribbonAvoid = Color(0xFFC6110C)
+    val ribbonEmpty = Color(0xFF6B6B72)
+
+    val bandGo = Color(0xFF4DC85A)
+    val bandGoDark = Color(0xFF3D8C4A)
+    val bandCaution = Color(0xFFF7BF33)
+    val bandCautionDark = Color(0xFFB8921A)
+    val bandStay = Color(0xFFEB4D4D)
+    val bandStayDark = Color(0xFFC43D3D)
+
+    val textPrimary = Color(0xFF14141A)
+    val textSecondary = Color(0xFF5C5C63)
+    val textTertiary = Color(0xFF8A8A90)
+    val textMuted = textTertiary
     val textOnGradient = Color.White
-    val border = Color(0xFFE8E8F0)
+    val border = Color(0xFFEDEBEB)
+    val borderDark = Color(0xFF2E2E32)
+    val textPrimaryDark = Color(0xFFF3F3F4)
+    val textSecondaryDark = Color(0xFFA8A8AE)
+    val textTertiaryDark = Color(0xD9A8A8AE)
 
-    val cardBackground = Color.White.copy(alpha = 0.72f)
-    val cardBackgroundDark = Color(0xFF1E2030).copy(alpha = 0.78f)
-    val glassBorder = Color.White.copy(alpha = 0.35f)
-    val glassBorderDark = Color.White.copy(alpha = 0.12f)
+    val cardBackground = bgSurface
+    val cardBackgroundDark = bgSurfaceDark
+    val glassBorder = border
+    val glassBorderDark = borderDark
 
-    val surfaceLight = Color(0xFFF5F7FA)
-    val surfaceDark = Color(0xFF12131F)
-    val surfaceVariantDark = Color(0xFF1E2030)
+    val surfaceLight = bgSubtle
+    val surfaceDark = bgSurfaceDark
+    val surfaceVariantDark = bgSubtleDark
 
     val aqiGood = Color(0xFF4DC85A)
     val aqiModerate = Color(0xFFF7BF33)
@@ -63,9 +94,10 @@ object KosmosColor {
         val cold = Color(0xFF66A8D1)
         val airGood = Color(0xFF4DC85A)
         val airModerate = Color(0xFFF2C633)
+        val airUnhealthySg = Color(0xFFFA8C33)
         val airUnhealthy = Color(0xFFEB4747)
         val airHazardous = Color(0xFF9E2A2A)
-        val vitaminD = Color(0xFFD98C33)
+        val vitaminD = Color(0xFFEB3228)
         val bestWalk = Color(0xFF3FA67F)
         val avoidHours = Color(0xFFC74D33)
         val canJog = Color(0xFF4DB371)
@@ -77,6 +109,8 @@ object KosmosColor {
         val coolerTomorrow = Color(0xFF7399BF)
         val goldenHour = Color(0xFFF28C4D)
         val easyDay = Color(0xFF3F8C66)
+        val commute = Color(0xFF7B5EA7)
+        val wind = Color(0xFF5A7C9E)
     }
 }
 

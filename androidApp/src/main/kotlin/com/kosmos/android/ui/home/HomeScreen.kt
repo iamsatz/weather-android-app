@@ -2,7 +2,6 @@ package com.kosmos.android.ui.home
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,50 +11,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import com.kosmos.android.R
 import com.kosmos.android.model.VerdictPriority
 import com.kosmos.android.model.WeatherSnapshot
-import com.kosmos.android.ui.designsystem.atoms.KosmosCardRow
-import com.kosmos.android.ui.designsystem.atoms.KosmosFab
+import com.kosmos.android.ui.designsystem.atoms.InsightCard
 import com.kosmos.android.ui.designsystem.atoms.KosmosIconButton
-import com.kosmos.android.ui.designsystem.atoms.SectionLabel
-import com.kosmos.android.ui.designsystem.molecules.UpdatesFeed
+import com.kosmos.android.ui.designsystem.organisms.DayRhythm
 import com.kosmos.android.ui.designsystem.organisms.HeroBlock
-import com.kosmos.android.ui.designsystem.organisms.HourlyStrip
-import com.kosmos.android.ui.designsystem.organisms.InsightsDropdown
-import com.kosmos.android.ui.designsystem.organisms.WeatherBackground
+import com.kosmos.android.ui.designsystem.organisms.NowStats
 import com.kosmos.android.ui.designsystem.tokens.KosmosColor
 import com.kosmos.android.ui.designsystem.tokens.KosmosDimens
 import com.kosmos.android.ui.designsystem.tokens.KosmosTextStyles
-import com.kosmos.android.ui.travel.TravelModeBanner
-import com.kosmos.android.ui.designsystem.tokens.KosmosThemeExt
-import com.kosmos.android.i18n.localized
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -64,6 +42,7 @@ fun HomeScreen(
     showNumbers: Boolean,
     insightsExpanded: Boolean,
     insightsLabel: String = "INSIGHTS",
+    daySummary: String? = null,
     travelState: com.kosmos.android.data.TravelState = com.kosmos.android.data.TravelState.Inactive,
     isRefreshing: Boolean,
     isLocating: Boolean = false,
@@ -73,21 +52,17 @@ fun HomeScreen(
     onSearchClick: () -> Unit,
     onLocationClick: () -> Unit = onSearchClick,
     onTimelineClick: () -> Unit,
-    onChatClick: () -> Unit,
     onTravelClick: () -> Unit = {},
     onHyperLocalClick: () -> Unit = {},
-    onCopyShare: ((com.kosmos.android.model.Verdict) -> Unit)? = null,
-    onWhatsAppShare: ((com.kosmos.android.model.Verdict) -> Unit)? = null,
-    onImageShare: ((com.kosmos.android.model.Verdict) -> Unit)? = null,
+    onCopyShare: ((List<com.kosmos.android.model.Verdict>) -> Unit)? = null,
+    onWhatsAppShare: ((List<com.kosmos.android.model.Verdict>) -> Unit)? = null,
+    onImageShare: ((List<com.kosmos.android.model.Verdict>) -> Unit)? = null,
     onRemind: ((com.kosmos.android.model.Verdict) -> Unit)? = null,
     remindedIds: Set<String> = emptySet(),
     notificationUnread: Int = 0,
     onNotificationsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val visibleVerdicts = snapshot.verdicts.filter {
-        it.priority != VerdictPriority.NORMAL
-    }
     val view = LocalView.current
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
@@ -96,133 +71,154 @@ fun HomeScreen(
             onRefresh()
         },
     )
+    val heroVerdict = snapshot.verdicts.firstOrNull {
+        it.priority == VerdictPriority.SEVERE || it.priority == VerdictPriority.ACTION
+    } ?: snapshot.verdicts.firstOrNull()
+    val insightVerdicts = snapshot.verdicts
+        .filter { it.priority != VerdictPriority.NORMAL }
+        .ifEmpty { snapshot.verdicts }
+        .filter { it.id != heroVerdict?.id }
 
     Box(
         modifier = modifier
             .fillMaxSize()
+            .background(KosmosColor.bgSurface)
             .pullRefresh(pullRefreshState),
     ) {
-        WeatherBackground(snapshot = snapshot) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Spacer(modifier = Modifier.height(KosmosDimens.screenTop))
+
+            HomeLocationHeader(
+                locationLabel = snapshot.headerLocationLabel(),
+                locationSubtitle = snapshot.headerSubtitle(),
+                onLocationClick = onLocationClick,
+                isLocating = isLocating,
+                onNotificationsClick = onNotificationsClick,
+                onSearchClick = onSearchClick,
+                onSettingsClick = onSettingsClick,
+                notificationUnread = notificationUnread,
+                showChrome = false,
+                modifier = Modifier.padding(horizontal = KosmosDimens.screenHorizontal),
+            )
+
+            HeroBlock(
+                snapshot = snapshot,
+                showNumbers = showNumbers,
+                modifier = Modifier.padding(horizontal = KosmosDimens.screenHorizontal),
+            )
+
+            NowStats(
+                snapshot = snapshot,
+                modifier = Modifier.padding(
+                    start = KosmosDimens.screenHorizontal,
+                    end = KosmosDimens.screenHorizontal,
+                    top = KosmosDimens.md,
+                ),
+            )
+
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = KosmosDimens.screenHorizontal),
+                modifier = Modifier.padding(
+                    start = KosmosDimens.screenHorizontal,
+                    end = KosmosDimens.screenHorizontal,
+                    top = KosmosDimens.xl,
+                ),
+                verticalArrangement = Arrangement.spacedBy(KosmosDimens.sm),
             ) {
-                Spacer(modifier = Modifier.height(KosmosDimens.screenTop))
-
-                HomeLocationHeader(
-                    locationLabel = snapshot.headerLocationLabel(),
-                    locationSubtitle = snapshot.headerSubtitle(),
-                    onLocationClick = onLocationClick,
-                    isLocating = isLocating,
-                    onNotificationsClick = onNotificationsClick,
-                    onSearchClick = onSearchClick,
-                    onSettingsClick = onSettingsClick,
-                    notificationUnread = notificationUnread,
-                )
-
-                HeroBlock(
-                    snapshot = snapshot,
-                    showNumbers = showNumbers,
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp, bottom = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    Text(
-                        text = "Your day",
-                        style = KosmosTextStyles.settingsTitle,
-                        color = KosmosColor.textOnGradient,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
-                    )
-                    if (snapshot.refreshLabel.isNotBlank()) {
-                        Text(
-                            text = snapshot.refreshLabel,
-                            style = KosmosTextStyles.dateHeader,
-                            color = KosmosColor.textOnGradient.copy(alpha = 0.8f),
-                            fontSize = 11.sp,
-                        )
-                    }
+                insightVerdicts.forEach { verdict ->
+                    InsightCard(verdict = verdict)
                 }
-                InsightsDropdown(
-                    verdicts = snapshot.verdicts,
-                    expanded = insightsExpanded,
-                    onToggle = onInsightsToggle,
-                    onCopyShare = onCopyShare,
-                    onWhatsAppShare = onWhatsAppShare,
-                    onImageShare = onImageShare,
-                    onRemind = onRemind,
-                    remindedIds = remindedIds,
-                    currentHour = snapshot.currentHour,
-                )
-
-                KosmosCardRow(
-                    onClick = onTimelineClick,
-                    modifier = Modifier.padding(top = KosmosDimens.cardGap),
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "See your day timeline",
-                            style = KosmosTextStyles.settingsTitle,
-                            color = KosmosThemeExt.colors.textPrimary,
-                        )
-                        Text(
-                            text = "Verdicts placed hour by hour",
-                            style = KosmosTextStyles.settingsSubtitle,
-                            color = KosmosThemeExt.colors.textMuted,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                    }
-                    Text(
-                        text = "📅",
-                        fontSize = 22.sp,
-                    )
-                }
-
-                if (travelState.isActive) {
-                    TravelModeBanner(
-                        travelState = travelState,
-                        onClick = onTravelClick,
-                    )
-                    Spacer(modifier = Modifier.height(KosmosDimens.cardGap))
-                }
-
-                SectionLabel("NEXT 4 HOURS")
-                HourlyStrip(
-                    hourly = snapshot.hourly.take(4),
-                    modifier = Modifier.padding(vertical = KosmosDimens.grid),
-                )
-
-                Spacer(modifier = Modifier.height(KosmosDimens.sectionSpacing))
-
-                SectionLabel("UPDATES")
-                Spacer(modifier = Modifier.height(4.dp))
-                UpdatesFeed(snapshot = snapshot)
-
-                Spacer(modifier = Modifier.height(KosmosDimens.bottomScrollPadding))
             }
+
+            DayRhythm(
+                hourly = snapshot.hourly.ifEmpty { snapshot.timelineHourly },
+                modifier = Modifier.padding(
+                    start = KosmosDimens.screenHorizontal,
+                    end = KosmosDimens.screenHorizontal,
+                    top = KosmosDimens.xl,
+                ),
+            )
+
+            HomeStatusBar(
+                label = snapshot.updatedLabel(),
+                onRefresh = onRefresh,
+                onSearchClick = onSearchClick,
+                onSettingsClick = onSettingsClick,
+                onNotificationsClick = onNotificationsClick,
+                notificationUnread = notificationUnread,
+                modifier = Modifier.padding(top = KosmosDimens.xl),
+            )
         }
 
         PullRefreshIndicator(
             refreshing = isRefreshing,
             state = pullRefreshState,
             modifier = Modifier.align(Alignment.TopCenter),
-            contentColor = KosmosColor.textOnGradient,
-        )
-
-        KosmosFab(
-            label = "Ask Komos",
-            onClick = onChatClick,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = KosmosDimens.fabBottom)
-                .semantics { contentDescription = "Ask Komos, open chat" },
+            contentColor = KosmosColor.accent,
         )
     }
+}
+
+@Composable
+private fun HomeStatusBar(
+    label: String,
+    onRefresh: () -> Unit,
+    onSearchClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
+    notificationUnread: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(KosmosColor.bgSubtle)
+            .padding(horizontal = KosmosDimens.screenHorizontal, vertical = KosmosDimens.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = label,
+            style = KosmosTextStyles.caption,
+            color = KosmosColor.textPrimary,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            KosmosIconButton(
+                painter = painterResource(R.drawable.ic_arrows_clockwise),
+                contentDescription = "Refresh",
+                onClick = onRefresh,
+                tint = KosmosColor.textPrimary,
+            )
+            KosmosIconButton(
+                painter = painterResource(R.drawable.ic_clock),
+                contentDescription = "Notifications",
+                onClick = onNotificationsClick,
+                badgeCount = notificationUnread,
+                tint = KosmosColor.textPrimary,
+            )
+            KosmosIconButton(
+                painter = painterResource(R.drawable.ic_magnifying_glass),
+                contentDescription = "Search city",
+                onClick = onSearchClick,
+                tint = KosmosColor.textPrimary,
+            )
+            KosmosIconButton(
+                painter = painterResource(R.drawable.ic_gear),
+                contentDescription = "Settings",
+                onClick = onSettingsClick,
+                tint = KosmosColor.textPrimary,
+            )
+        }
+    }
+}
+
+private fun WeatherSnapshot.updatedLabel(): String {
+    val raw = refreshLabel.ifBlank {
+        if (updatedMinutesAgo <= 0) "Updated just now" else "Updated ${updatedMinutesAgo}m ago"
+    }
+    return raw.replaceFirst("refreshed", "Updated", ignoreCase = true)
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 }

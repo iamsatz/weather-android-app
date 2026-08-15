@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="komos_accent">#EB3228</color>
+    <color name="komos_temp">#C6110C</color>
+    <color name="komos_bg_surface">#FFFFFF</color>
+    <color name="komos_bg_subtle">#F8F8F8</color>
+    <color name="komos_bg_pill">#EDEBE9</color>
+    <color name="komos_chip_walk">#FFDDFC</color>
+    <color name="komos_chip_exercise">#FFEBD4</color>
+    <color name="komos_chip_outdoor">#E7F2B9</color>
+    <color name="komos_ribbon_go">#4A7C32</color>
+    <color name="komos_ribbon_caution">#8A5A12</color>
+    <color name="komos_ribbon_avoid">#C6110C</color>
+    <color name="komos_ribbon_empty">#6B6B72</color>
+    <color name="komos_text_primary">#14141A</color>
+    <color name="komos_text_secondary">#5C5C63</color>
+    <color name="komos_text_tertiary">#8A8A90</color>
+    <color name="komos_border">#EDEBEB</color>
+    <color name="komos_band_go">#4DC85A</color>
+    <color name="komos_band_caution">#F7BF33</color>
+    <color name="komos_band_stay">#EB4D4D</color>
+</resources>

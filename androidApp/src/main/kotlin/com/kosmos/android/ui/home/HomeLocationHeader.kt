@@ -13,10 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,17 +20,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import com.kosmos.android.R
 import com.kosmos.android.model.WeatherSnapshot
 import com.kosmos.android.ui.designsystem.atoms.KosmosIconButton
+import com.kosmos.android.ui.designsystem.atoms.LocationPill
 import com.kosmos.android.ui.designsystem.tokens.KosmosColor
 import com.kosmos.android.ui.designsystem.tokens.KosmosDimens
 import com.kosmos.android.ui.designsystem.tokens.KosmosTextStyles
+import com.kosmos.android.ui.designsystem.tokens.KosmosThemeExt
 
 @Composable
 fun HomeSkeleton(
@@ -44,15 +43,7 @@ fun HomeSkeleton(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF5E89B8),
-                        Color(0xFF7BA4C9),
-                        Color(0xFF9BB8D4),
-                    ),
-                ),
-            ),
+            .background(KosmosThemeExt.colors.bgSubtle),
     ) {
         Column(
             modifier = Modifier
@@ -104,18 +95,18 @@ fun HomeSkeleton(
                     .padding(top = 48.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                CircularProgressIndicator(color = KosmosColor.textOnGradient)
+                CircularProgressIndicator(color = KosmosColor.accent)
                 Text(
                     text = message,
                     modifier = Modifier.padding(top = 16.dp),
-                    color = KosmosColor.textOnGradient.copy(alpha = 0.92f),
+                    color = KosmosThemeExt.colors.textPrimary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
                     text = "Loading weather for you",
                     modifier = Modifier.padding(top = 6.dp),
-                    color = KosmosColor.textOnGradient.copy(alpha = 0.75f),
+                    color = KosmosThemeExt.colors.textSecondary,
                     fontSize = 13.sp,
                 )
             }
@@ -158,78 +149,44 @@ fun HomeLocationHeader(
     onSettingsClick: () -> Unit,
     notificationUnread: Int = 0,
     showSearch: Boolean = true,
+    showChrome: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
+    Row(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-        shape = RoundedCornerShape(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(onClick = onLocationClick),
-            ) {
-                Text(
-                    text = "$locationLabel ›",
-                    style = KosmosTextStyles.locationHeader,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                when {
-                    isLocating -> {
-                        Text(
-                            text = "Pinpointing your area…",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                    }
-                    locationSubtitle.isNotBlank() -> {
-                        Text(
-                            text = locationSubtitle,
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                    }
-                }
-            }
+        LocationPill(
+            city = locationLabel,
+            onClick = onLocationClick,
+            locating = isLocating,
+            modifier = if (showChrome) Modifier.weight(1f) else Modifier,
+        )
+        if (showChrome) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(0.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 KosmosIconButton(
-                    icon = Icons.Default.Notifications,
+                    painter = painterResource(R.drawable.ic_clock),
                     contentDescription = "Notifications",
                     onClick = onNotificationsClick,
                     badgeCount = notificationUnread,
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = KosmosThemeExt.colors.textPrimary,
                 )
                 if (showSearch) {
                     KosmosIconButton(
-                        icon = Icons.Default.Search,
+                        painter = painterResource(R.drawable.ic_magnifying_glass),
                         contentDescription = "Search city",
                         onClick = onSearchClick,
-                        tint = MaterialTheme.colorScheme.onSurface,
+                        tint = KosmosThemeExt.colors.textPrimary,
                     )
                 }
                 KosmosIconButton(
-                    icon = Icons.Default.Menu,
+                    painter = painterResource(R.drawable.ic_gear),
                     contentDescription = "Settings",
                     onClick = onSettingsClick,
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = KosmosThemeExt.colors.textPrimary,
                 )
             }
         }
@@ -285,7 +242,7 @@ fun ElderLocationHeader(
             }
         }
         KosmosIconButton(
-            icon = Icons.Default.Menu,
+            painter = painterResource(R.drawable.ic_gear),
             contentDescription = "Settings",
             onClick = onSettingsClick,
         )

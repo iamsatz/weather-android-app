@@ -11,12 +11,17 @@ import com.kosmos.android.R
 object KosmosFonts {
     private const val TAG = "KosmosFonts"
 
-    var playfair: FontFamily = FontFamily.Serif
+    var solway: FontFamily = FontFamily.Serif
         private set
-    var inter: FontFamily = FontFamily.SansSerif
+    var publicSans: FontFamily = FontFamily.SansSerif
         private set
     var usingBundledFonts: Boolean = false
         private set
+
+    val playfair: FontFamily
+        get() = solway
+    val inter: FontFamily
+        get() = publicSans
 
     fun init(context: Context) {
         val appContext = context.applicationContext
@@ -28,33 +33,30 @@ object KosmosFonts {
 
     private fun loadBundled(context: Context): Boolean {
         val entries = listOf(
-            R.font.inter_regular,
-            R.font.inter_medium,
-            R.font.inter_semibold,
-            R.font.playfair_display_regular,
-            R.font.playfair_display_bold,
+            R.font.solway_regular,
+            R.font.solway_bold,
+            R.font.publicsans_variable,
         )
         for (resId in entries) {
             if (!isValidFontResource(context, resId)) return false
         }
         return try {
             entries.forEach { resId ->
-                ResourcesCompat.getFont(context, resId)
-                    ?: return false
+                ResourcesCompat.getFont(context, resId) ?: return false
             }
-            playfair = FontFamily(
-                Font(R.font.playfair_display_regular, FontWeight.Normal),
-                Font(R.font.playfair_display_bold, FontWeight.Bold),
-                Font(R.font.playfair_display_bold, FontWeight.SemiBold),
+            solway = FontFamily(
+                Font(R.font.solway_regular, FontWeight.Normal),
+                Font(R.font.solway_bold, FontWeight.Bold),
+                Font(R.font.solway_bold, FontWeight.SemiBold),
             )
-            inter = FontFamily(
-                Font(R.font.inter_regular, FontWeight.Normal),
-                Font(R.font.inter_medium, FontWeight.Medium),
-                Font(R.font.inter_semibold, FontWeight.SemiBold),
-                Font(R.font.inter_semibold, FontWeight.Bold),
+            publicSans = FontFamily(
+                Font(R.font.publicsans_variable, FontWeight.Normal),
+                Font(R.font.publicsans_variable, FontWeight.Medium),
+                Font(R.font.publicsans_variable, FontWeight.SemiBold),
+                Font(R.font.publicsans_variable, FontWeight.Bold),
             )
             usingBundledFonts = true
-            Log.i(TAG, "Bundled Playfair + Inter loaded")
+            Log.i(TAG, "Bundled Solway + Public Sans loaded")
             true
         } catch (e: Exception) {
             Log.e(TAG, "Bundled font load failed", e)
@@ -86,8 +88,8 @@ object KosmosFonts {
     }
 
     private fun useSystemDefaults() {
-        playfair = FontFamily.Serif
-        inter = FontFamily.SansSerif
+        solway = FontFamily.Serif
+        publicSans = FontFamily.SansSerif
         usingBundledFonts = false
     }
 }

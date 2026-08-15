@@ -51,7 +51,6 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val vm: HomeViewModel = viewModel()
-            val useDarkMode by vm.useDarkMode.collectAsState()
             val appLocale by vm.appLocale.collectAsState()
             val userMode by vm.userMode.collectAsState()
 
@@ -75,16 +74,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            LaunchedEffect(useDarkMode) {
+            LaunchedEffect(Unit) {
                 WindowCompat.getInsetsController(window, window.decorView)
-                    .isAppearanceLightStatusBars = !useDarkMode
+                    .isAppearanceLightStatusBars = true
                 WindowCompat.getInsetsController(window, window.decorView)
-                    .isAppearanceLightNavigationBars = !useDarkMode
+                    .isAppearanceLightNavigationBars = true
             }
 
             CompositionLocalProvider(LocalAppLocale provides appLocale) {
                 KosmosTheme(
-                    darkTheme = useDarkMode,
+                    darkTheme = false,
                     elderMode = userMode == UserMode.ELDER,
                 ) {
                     Surface(
